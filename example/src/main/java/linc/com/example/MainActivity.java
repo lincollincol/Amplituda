@@ -37,5 +37,6 @@ public class MainActivity extends AppCompatActivity {
                 .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
                     System.out.println("As new line sequence ====== " + newLineSeq);
                 });
+
     }
 }
