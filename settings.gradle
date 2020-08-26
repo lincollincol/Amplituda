@@ -1,2 +1,3 @@
+include ':example'
 include ':app'
 rootProject.name = "Amplituda"
