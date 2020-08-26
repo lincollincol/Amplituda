@@ -66,7 +66,7 @@ float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex
 
 extern "C" JNIEXPORT jstring JNICALL
 
-Java_linc_com_amplituda_Amplituda_stringFromJNI(
+Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
         jobject,
         jstring audio_path
