@@ -32,6 +32,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
 //    implementation project(":app")
 
-    implementation 'com.github.lincollincol:Amplituda:1.2'
+//    implementation 'com.github.lincollincol:Amplituda:1.2'
+    implementation 'com.github.lincollincol:Amplituda:e152026fe6'
 
 }
