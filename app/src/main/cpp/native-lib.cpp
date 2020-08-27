@@ -86,7 +86,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     AVFormatContext* formatContext = NULL;
     if (avformat_open_input(&formatContext, filename.data(), NULL, NULL) != 0) {
         av_free(frame);
-        return env->NewStringUTF("Error opening file! Amplituda:exception:800");
+        return env->NewStringUTF("Error opening file, file path is not valid! Amplituda:exception:800");
     }
 
     if (avformat_find_stream_info(formatContext, NULL) < 0){
