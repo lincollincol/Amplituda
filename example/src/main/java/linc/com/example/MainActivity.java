@@ -3,12 +3,6 @@ package linc.com.example;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
-
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
 import linc.com.amplituda.Amplituda;
 
 public class MainActivity extends AppCompatActivity {
@@ -18,8 +12,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        new Amplituda().fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-        new Amplituda().fromPath("/storage/emulated/0/viber/kygo.mp3")
+        new Amplituda().fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json ====== " + json);
                 }).amplitudesAsList(list -> {

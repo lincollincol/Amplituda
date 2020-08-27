@@ -33,6 +33,6 @@ dependencies {
 //    implementation project(":app")
 
 //    implementation 'com.github.lincollincol:Amplituda:1.2'
-    implementation 'com.github.lincollincol:Amplituda:e152026fe6'
+    implementation 'com.github.lincollincol:Amplituda:1d998126e5'
 
 }
