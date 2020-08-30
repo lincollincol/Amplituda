@@ -217,6 +217,18 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 */
 ```  
 
+### Supported formats (tested):
+* mp3
+* opus
+* oga
+* ogg 
+* m4a
+* mp4
+* test more formats and contact me.
+  
+### Unsupported formats:
+* wav
+
 ## WARNING
 ### Amplituda process audio in the main thread !  You can run Amplituda with RxJava, Kotlin coroutines and Java Threads to process audio in the background therad.
 Amplituda don't process audio in the background thread because of :
@@ -231,6 +243,10 @@ Amplituda don't process audio in the background thread because of :
 
 * Use <a href="https://stackoverflow.com/questions/38744579/show-waveform-of-audio">PlayerVisualizerView</a> from this StackOverflow answer in which you should pass Amplituda data to ``` updateVisualizer() ``` as a parameter.
 * Use another third-party library to draw waveform or create cutsom view in which this waveform view use processed audio data byAmplituda to draw every line. 
+
+## Feedback
+<a href="https://mail.google.com">linc.apps.sup@gmail.com</a>
+
 # License
 ```
    Copyright 2020 lincollincol
@@ -247,10 +263,3 @@ Amplituda don't process audio in the background thread because of :
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
-
-
-
-
-
-
-
