@@ -12,7 +12,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new Amplituda().fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+//        new Amplituda().fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+        new Amplituda().fromPath("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json ====== " + json);
                 }).amplitudesAsList(list -> {
