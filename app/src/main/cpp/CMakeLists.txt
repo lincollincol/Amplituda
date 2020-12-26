@@ -41,6 +41,7 @@ add_library( # Sets the name of the library.
         native-lib.cpp )
 set_target_properties(native-lib PROPERTIES LINKER_LANGUAGE CXX)
 
+
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
 # default, you only need to specify the name of the public NDK library
@@ -55,6 +56,8 @@ set_target_properties(native-lib PROPERTIES LINKER_LANGUAGE CXX)
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
 
+find_library( log-lib log )
+
 target_link_libraries( # Specifies the target library.
         native-lib
 
@@ -62,7 +65,7 @@ target_link_libraries( # Specifies the target library.
         avformat
         avcodec
         swresample
-
+        ${log-lib}
         # Links the target library to the log library
         # included in the NDK.
         )

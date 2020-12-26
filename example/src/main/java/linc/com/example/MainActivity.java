@@ -13,10 +13,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 //        new Amplituda().fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-        new Amplituda().fromPath("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3")
+//        new Amplituda().fromPath("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3")
+        new Amplituda().fromPath("/storage/emulated/0/Music/kygo.wav")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json ====== " + json);
-                }).amplitudesAsList(list -> {
+                })/*.amplitudesAsList(list -> {
                     System.out.print("As list ====== ");
                     for(int tmp : list) {
                         System.out.print(tmp + " ");
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
                     System.out.println("As new line sequence ====== " + newLineSeq);
-                });
+                })*/;
 
     }
 }
