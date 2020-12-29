@@ -1,6 +1,5 @@
+
 #include <jni.h>
-//#include <stdio.h>
-//#include <stdlib.h>
 #include <android/log.h>
 
 extern "C" {
@@ -9,9 +8,6 @@ extern "C" {
 #include "libavformat/avformat.h"
 #include "libswresample/swresample.h"
 };
-
-
-
 
 int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
 
@@ -123,24 +119,74 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     int sample_rate = 44100;
     double* data;
     int size;
+    if (decode_audio_file("/storage/emulated/0/Music/clap_effect.mp3", sample_rate, &data, &size) != 0) {
+//    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3", sample_rate, &data, &size) != 0) {
-    if (decode_audio_file("/storage/emulated/0/Music/kygo.wav", sample_rate, &data, &size) != 0) {
+//    if (decode_audio_file("/storage/emulated/0/Music/kygo.wav", sample_rate, &data, &size) != 0) {
         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "FAIL");
         return env->NewStringUTF("");
     }
 
+    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
+    fclose(clf);
+
     FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
 
-    // sum data
-    for (int i=0; i<size; ++i) { // i+= 1920
-        if(i % 1920 == 0) {
-            fprintf(out, "%f\n", data[i]);
-        }
-    }
-    // bb size = m
-    // kg size = 4497920
 
-//    __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%f\n", (sum / size));
+    // sum data
+    // todo use as wav alternative
+
+    double peak = 0;
+    for (int i=0; i<size; ++i) { // i+= 1920
+
+        if(peak < data[i]) {
+            peak = data[i];
+        }
+
+        if(i % 64 == 0) {
+            double amp =  ( (peak >= 0 ? peak : (-peak)) );
+            int sample = ((int)pow((((( amp * 2) / 4) * 100)), 0.5));
+
+            fprintf(out, "%d\n", sample);
+            peak = -2.0;
+        }
+
+    }
+
+    /*for (int i=0; i<size; ++i) { // i+= 1920
+
+        if(peak < data[i]) {
+            peak = data[i];
+        }
+
+        if(i % 64 == 0) {
+            fprintf(out, "%f\n", peak >= 0 ? peak : (-peak));
+            peak = -2.0;
+        }
+
+    }*/
+    /*
+    for (int i=0; i<size; ++i) { // i+= 1920
+        if(data[i] < 0)
+            sum += -data[i];
+        else
+            sum += data[i];
+
+        if(i % 96 == 0) {
+
+//            int sample = ((int)pow((((( (data[i] + (-min)) * 2) / 4) * 100)), 0.5));
+            if(data[i] > 0) {
+                int sample = (int)pow(((sum / 2) * 100), 0.5);
+                fprintf(out, "%d\n", sample );
+            }
+
+//            fprintf(out, "%d\n", ((int)((data[i]*50)/ave)) );
+//            fprintf(out, "%d\n", ((int) (data[i] + (-min))) );
+            sum = 0;
+        }
+    }*/
+
+//    __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "max = %f ::::: min = %f\n", max, min);
 
     fclose(out);
     free(data);
@@ -148,8 +194,8 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     return env->NewStringUTF("");
 }
 
-
 /*
+
 #include <jni.h>
 #include <string>
 #include <android/log.h>
@@ -280,6 +326,12 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     int is_wav = av_sample_fmt_is_planar(codecContext->sample_fmt);
 
+
+    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
+    fclose(clf);
+
+    FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
+
     while (av_read_frame(formatContext, &readingPacket) == 0)
     {
         if (readingPacket.stream_index == audioStream->index)
@@ -293,11 +345,12 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                 if (result >= 0 && gotFrame)
                 {
 
+                    decodingPacket.size -= result;
+                    decodingPacket.data += result;
+
                      if(is_wav) {
                          __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS NOT WAV\n");
 
-//                        decodingPacket.size -= result;
-//                        decodingPacket.data += result;
 //
 //                        float sum = 0;
 //                        for(int s = 0; s < 4; ++s) {
@@ -318,27 +371,17 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 //                        resultFrame.append("\n");
 
                      } else {
-                         float sum = 0;
-                         for(int c = 0; c < codecContext->channels; ++c) {
-//                             float sample = getSample(codecContext, frame->extended_data[c], 0);
-//                             if(sample < 0)
-//                                 sum += -sample;
-//                             else
-//                                 sum += sample;
 
-                            frame->side_data
-                             __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%d\n", frame->extended_data[c][0]);
+                         int sum = 0;
+                         for(int i = 0; i < result; i++) {
+                             sum += frame->extended_data[0][i];
+                             if(i % 128 == 0) {
+//                                 fprintf(out, "%d\n", frame->extended_data[0][i]);
+                                 sum = 0;
+                             }
+//                             __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "Sample = %d\n", frame->extended_data[0][i]);
+
                          }
-
-//                         int amplitude = pow(((int)(((sum * 2) / 4) * 100)), 0.5);
-//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%d\n", amplitude);
-
-//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "WAV\n");
-//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "CHANNELS = %d\n", codecContext->channels);
-//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "WAV\n", codecContext->);
-//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "RESULT = %d\n", result);
-
-
                      }
 
 
@@ -354,13 +397,14 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         av_free_packet(&readingPacket);
     }
 
+
     av_free(frame);
     avcodec_close(codecContext);
     avformat_close_input(&formatContext);
     return env->NewStringUTF(resultFrame.data());
 }
-*/
 
+*/
 
 /*
  #include <jni.h>
