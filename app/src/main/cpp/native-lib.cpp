@@ -1,4 +1,4 @@
-
+/*
 #include <jni.h>
 #include <android/log.h>
 
@@ -114,14 +114,18 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         jstring audio_path
 ) {
 
+//    av_log()
+//    FFMAX(1,2);
+
 
     // decode data
     int sample_rate = 44100;
     double* data;
     int size;
-    if (decode_audio_file("/storage/emulated/0/Music/clap_effect.mp3", sample_rate, &data, &size) != 0) {
+//    if (decode_audio_file("/storage/emulated/0/Music/clap_effect.mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3", sample_rate, &data, &size) != 0) {
+    if (decode_audio_file("/storage/9016-4EF8/MUSIC/London Grammar - Strong (Yotto Rework).mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/emulated/0/Music/kygo.wav", sample_rate, &data, &size) != 0) {
         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "FAIL");
         return env->NewStringUTF("");
@@ -136,55 +140,76 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // sum data
     // todo use as wav alternative
 
-    double peak = 0;
+    double rms = 0;
+
     for (int i=0; i<size; ++i) { // i+= 1920
-
-        if(peak < data[i]) {
-            peak = data[i];
-        }
-
+        rms += data[i] * data[i];
         if(i % 64 == 0) {
-            double amp =  ( (peak >= 0 ? peak : (-peak)) );
-            int sample = ((int)pow((((( amp * 2) / 4) * 100)), 0.5));
+            double sample = sqrt(rms / static_cast<double>(64));
+            int amp = ((int)(sample*10000));
 
-            fprintf(out, "%d\n", sample);
-            peak = -2.0;
+            if(amp >= 1000) {
+                amp = 999;
+            }
+//            fprintf(out, "%d\n", ((int)pow((((( amp * 2) / 4) * 100)), 0.5)));
+            fprintf(out, "%d\n", amp);
+            rms = 0;
         }
 
     }
 
-    /*for (int i=0; i<size; ++i) { // i+= 1920
+//    for (int i=0; i<size; ++i) { // i+= 1920
+//        rms += data[i] * data[i];
+//        if(i % 512 == 0) {
+//            double sample = sqrt(rms / static_cast<double>(64));
+//            int amp = ((int)(sample*10000));
+//
+//            if(amp > 1000) {
+//                amp /= 10;
+//            }
+//            fprintf(out, "%d\n", amp);
+//            rms = 0;
+//        }
+//
+//    }
 
-        if(peak < data[i]) {
-            peak = data[i];
-        }
 
-        if(i % 64 == 0) {
-            fprintf(out, "%f\n", peak >= 0 ? peak : (-peak));
-            peak = -2.0;
-        }
 
-    }*/
-    /*
-    for (int i=0; i<size; ++i) { // i+= 1920
-        if(data[i] < 0)
-            sum += -data[i];
-        else
-            sum += data[i];
 
-        if(i % 96 == 0) {
+//    for (int i=0; i<size; ++i) { // i+= 1920
+//
+//        if(peak < data[i]) {
+//            peak = data[i];
+//        }
+//
+//        if(i % 64 == 0) {
+//            fprintf(out, "%f\n", peak >= 0 ? peak : (-peak));
+//            peak = -2.0;
+//        }
+//
+//    }
 
-//            int sample = ((int)pow((((( (data[i] + (-min)) * 2) / 4) * 100)), 0.5));
-            if(data[i] > 0) {
-                int sample = (int)pow(((sum / 2) * 100), 0.5);
-                fprintf(out, "%d\n", sample );
-            }
 
-//            fprintf(out, "%d\n", ((int)((data[i]*50)/ave)) );
-//            fprintf(out, "%d\n", ((int) (data[i] + (-min))) );
-            sum = 0;
-        }
-    }*/
+//    for (int i=0; i<size; ++i) { // i+= 1920
+//        if(data[i] < 0)
+//            sum += -data[i];
+//        else
+//            sum += data[i];
+//
+//        if(i % 96 == 0) {
+//
+////            int sample = ((int)pow((((( (data[i] + (-min)) * 2) / 4) * 100)), 0.5));
+//            if(data[i] > 0) {
+//                int sample = (int)pow(((sum / 2) * 100), 0.5);
+//                fprintf(out, "%d\n", sample );
+//            }
+//
+////            fprintf(out, "%d\n", ((int)((data[i]*50)/ave)) );
+////            fprintf(out, "%d\n", ((int) (data[i] + (-min))) );
+//            sum = 0;
+//        }
+//    }
+
 
 //    __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "max = %f ::::: min = %f\n", max, min);
 
@@ -194,7 +219,15 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     return env->NewStringUTF("");
 }
 
-/*
+
+*/
+
+
+
+
+
+
+
 
 #include <jni.h>
 #include <string>
@@ -351,37 +384,34 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                      if(is_wav) {
                          __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS NOT WAV\n");
 
-//
-//                        float sum = 0;
-//                        for(int s = 0; s < 4; ++s) {
-//                            for(int c = 0; c < codecContext->channels; ++c) {
-//                                float sample = getSample(codecContext, frame->extended_data[c], s);
-//                                if(sample < 0)
-//                                    sum += -sample;
-//                                else
-//                                    sum += sample;
-//                            }
-//                        }
+
+                        float sum = 0;
+                        for(int s = 0; s < 4; ++s) {
+                            for(int c = 0; c < codecContext->channels; ++c) {
+                                float sample = getSample(codecContext, frame->extended_data[c], s);
+                                if(sample < 0)
+                                    sum += -sample;
+                                else
+                                    sum += sample;
+                            }
+                        }
 //    //                    float average_point = (sum * 2) / 4;
 //
 //    //                    int amplitude = pow(((int)(average_point * 100)), 0.5);
-//                        int amplitude = pow(((int)(((sum * 2) / 4) * 100)), 0.5);
-//
+                        int amplitude = pow(((int)(((sum * 2) / 4) * 100)), 0.5);
+                        fprintf(out, "%d\n", amplitude);
 //                        resultFrame.append(std::to_string(  amplitude ));
 //                        resultFrame.append("\n");
 
                      } else {
+                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS WAV\n");
 
                          int sum = 0;
                          for(int i = 0; i < result; i++) {
-                             sum += frame->extended_data[0][i];
-                             if(i % 128 == 0) {
-//                                 fprintf(out, "%d\n", frame->extended_data[0][i]);
-                                 sum = 0;
-                             }
-//                             __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "Sample = %d\n", frame->extended_data[0][i]);
-
+                             sum += frame->extended_data[0][i] * frame->extended_data[0][i];
                          }
+                         int rms = sqrt(sum/result);
+                         fprintf(out, "%d\n", rms);
                      }
 
 
@@ -397,14 +427,14 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         av_free_packet(&readingPacket);
     }
 
-
+    fclose(out);
     av_free(frame);
     avcodec_close(codecContext);
     avformat_close_input(&formatContext);
     return env->NewStringUTF(resultFrame.data());
 }
 
-*/
+
 
 /*
  #include <jni.h>
