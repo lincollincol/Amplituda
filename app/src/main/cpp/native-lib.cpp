@@ -357,7 +357,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 //    AVAudioFifo *fifo = av_audio_fifo_alloc(codecContext->sample_fmt, codecContext->channels, audioStream->);
 
 
-    int is_wav = av_sample_fmt_is_planar(codecContext->sample_fmt);
+    int is_not_wav = av_sample_fmt_is_planar(codecContext->sample_fmt);
 
 
     FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
@@ -381,9 +381,28 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                     decodingPacket.size -= result;
                     decodingPacket.data += result;
 
-                     if(is_wav) {
-                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS NOT WAV\n");
+                     if(is_not_wav) {
 
+/*                         double high_peak = 0;
+                         double low_peak = 0;
+
+                         for(int s = 0; s < 4; ++s) {
+                            for(int c = 0; c < codecContext->channels; ++c) {
+//                                float sample = getSample(codecContext, frame->extended_data[c], s);
+//                                __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%d\n", frame->extended_data[c][s]);
+                                if(frame->extended_data[c][s] > high_peak) {
+                                    high_peak = frame->extended_data[c][s];
+                                }
+
+                                if(frame->extended_data[c][s] < low_peak) {
+                                    low_peak = frame->extended_data[c][s];
+                                }
+                            }
+                         }
+
+                         int amplitude = (int)(high_peak - low_peak);
+
+                         fprintf(out, "%d\n", (amplitude));*/
 
                         float sum = 0;
                         for(int s = 0; s < 4; ++s) {
@@ -395,23 +414,26 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                                     sum += sample;
                             }
                         }
-//    //                    float average_point = (sum * 2) / 4;
-//
-//    //                    int amplitude = pow(((int)(average_point * 100)), 0.5);
                         int amplitude = pow(((int)(((sum * 2) / 4) * 100)), 0.5);
                         fprintf(out, "%d\n", amplitude);
-//                        resultFrame.append(std::to_string(  amplitude ));
-//                        resultFrame.append("\n");
 
                      } else {
-                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS WAV\n");
+//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS WAV\n");
 
-                         int sum = 0;
+                         double high_peak = 0;
+                         double low_peak = 0;
+
                          for(int i = 0; i < result; i++) {
-                             sum += frame->extended_data[0][i] * frame->extended_data[0][i];
+                            if(frame->extended_data[0][i] > high_peak) {
+                                high_peak = frame->extended_data[0][i];
+                            }
+
+                            if(frame->extended_data[0][i] < low_peak) {
+                                low_peak = frame->extended_data[0][i];
+                            }
                          }
-                         int rms = sqrt(sum/result);
-                         fprintf(out, "%d\n", rms);
+                         fprintf(out, "%d\n", ((int)(high_peak - low_peak - 128)));
+//                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%f\n", (high_peak - low_peak));
                      }
 
 
