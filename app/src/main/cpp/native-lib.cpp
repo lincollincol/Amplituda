@@ -1,4 +1,4 @@
-/*
+
 #include <jni.h>
 #include <android/log.h>
 
@@ -9,7 +9,61 @@ extern "C" {
 #include "libswresample/swresample.h"
 };
 
+float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
+    int64_t val = 0;
+    float ret = 0;
+    int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
+
+    switch(sampleSize) {
+        case 1:
+            val = (reinterpret_cast<uint8_t*>(buffer))[sampleIndex];
+            val -= 127;
+            break;
+        case 2: val = (reinterpret_cast<uint16_t*>(buffer))[sampleIndex];
+            break;
+        case 4: val = (reinterpret_cast<uint32_t*>(buffer))[sampleIndex];
+            break;
+        case 8: val = (reinterpret_cast<uint64_t*>(buffer))[sampleIndex];
+            break;
+        default:
+            return 0;
+    }
+
+    // Check which data type is in the sample.
+    switch(codecCtx->sample_fmt) {
+        case AV_SAMPLE_FMT_U8:
+        case AV_SAMPLE_FMT_S16:
+        case AV_SAMPLE_FMT_S32:
+        case AV_SAMPLE_FMT_U8P:
+        case AV_SAMPLE_FMT_S16P:
+        case AV_SAMPLE_FMT_S32P:
+            // integer => Scale to [-1, 1] and convert to float.
+            ret = val / (static_cast<float>(((1 << (sampleSize*8-1))-1)));
+            break;
+        case AV_SAMPLE_FMT_FLT:
+        case AV_SAMPLE_FMT_FLTP:
+            // float => reinterpret
+            ret = *reinterpret_cast<float*>(&val);
+            break;
+        case AV_SAMPLE_FMT_DBL:
+        case AV_SAMPLE_FMT_DBLP:
+            // double => reinterpret and then static cast down
+            ret = static_cast<float>(*reinterpret_cast<double*>(&val));
+            break;
+        default:
+            return 0;
+    }
+
+    return ret;
+
+}
+
 int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
+
+    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
+    fclose(clf);
+
+    FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
 
     // initialize all muxers, demuxers and protocols for libavformat
     // (does nothing if called twice during the course of one program execution)
@@ -47,6 +101,8 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
         return -1;
     }
 
+    int is_not_wav = av_sample_fmt_is_planar(codec->sample_fmt);
+
     // prepare resampler
     struct SwrContext* swr = swr_alloc();
     av_opt_set_int(swr, "in_channel_count",  codec->channels, 0);
@@ -75,6 +131,8 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     // iterate through frames
     *data = NULL;
     *size = 0;
+
+
     while (av_read_frame(format, &packet) >= 0) {
         // decode one frame
         int gotFrame;
@@ -88,11 +146,57 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
         double* buffer;
         av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
         int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (uint8_t**) frame->data, frame->nb_samples);
+
+        if(is_not_wav) {
+            // rms
+            float sum = 0;
+            for(int i = 0; i < frame_count; i++) {
+                for(int j = 0; j < frame->channels; j++) {
+                    float sample = getSample(codec, frame->data[j], i);
+                    sum += sample * sample;
+                }
+            }
+            fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 10000)));
+
+        } else {
+            // amplitude
+            int high_peak = 0, low_peak = 0;
+            for(int i = 0; i < frame_count; i++) {
+                if(frame->data[0][i] > high_peak) {
+                    high_peak = frame->data[0][i];
+                }
+
+                if(frame->data[0][i] < low_peak) {
+                    low_peak = frame->data[0][i];
+                }
+            }
+            fprintf(out, "%d\n", (high_peak - low_peak - 128));
+        }
+
         // append resampled frames to data
         *data = (double*) realloc(*data, (*size + frame->nb_samples) * sizeof(double));
         memcpy(*data + *size, buffer, frame_count * sizeof(double));
         *size += frame_count;
     }
+
+//    while (av_read_frame(format, &packet) >= 0) {
+//        // decode one frame
+//        int gotFrame;
+//        if (avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0) {
+//            break;
+//        }
+//        if (!gotFrame) {
+//            continue;
+//        }
+//        // resample frames
+//        double* buffer;
+//        av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
+//        int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (uint8_t**) frame->data, frame->nb_samples);
+//        // append resampled frames to data
+//        *data = (double*) realloc(*data, (*size + frame->nb_samples) * sizeof(double));
+//        memcpy(*data + *size, buffer, frame_count * sizeof(double));
+//        *size += frame_count;
+//    }
 
     // clean up
     av_frame_free(&frame);
@@ -100,6 +204,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     avcodec_close(codec);
     avformat_free_context(format);
 
+    fclose(out);
     // success
     return 0;
 
@@ -123,40 +228,24 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     double* data;
     int size;
 //    if (decode_audio_file("/storage/emulated/0/Music/clap_effect.mp3", sample_rate, &data, &size) != 0) {
-//    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3", sample_rate, &data, &size) != 0) {
+    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/9016-4EF8/MUSIC/Worakls - Red Dressed (Ben Böhmer Remix).mp3", sample_rate, &data, &size) != 0) {
-    if (decode_audio_file("/storage/9016-4EF8/MUSIC/London Grammar - Strong (Yotto Rework).mp3", sample_rate, &data, &size) != 0) {
+//    if (decode_audio_file("/storage/9016-4EF8/MUSIC/London Grammar - Strong (Yotto Rework).mp3", sample_rate, &data, &size) != 0) {
 //    if (decode_audio_file("/storage/emulated/0/Music/kygo.wav", sample_rate, &data, &size) != 0) {
         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "FAIL");
         return env->NewStringUTF("");
     }
 
-    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
-    fclose(clf);
-
-    FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
+//    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
+//    fclose(clf);
+//
+//    FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
 
 
     // sum data
-    // todo use as wav alternative
-
     double rms = 0;
-
-    for (int i=0; i<size; ++i) { // i+= 1920
-        rms += data[i] * data[i];
-        if(i % 64 == 0) {
-            double sample = sqrt(rms / static_cast<double>(64));
-            int amp = ((int)(sample*10000));
-
-            if(amp >= 1000) {
-                amp = 999;
-            }
-//            fprintf(out, "%d\n", ((int)pow((((( amp * 2) / 4) * 100)), 0.5)));
-            fprintf(out, "%d\n", amp);
-            rms = 0;
-        }
-
-    }
+//    for (int i=0; i<size; ++i) {
+//    }
 
 //    for (int i=0; i<size; ++i) { // i+= 1920
 //        rms += data[i] * data[i];
@@ -213,14 +302,13 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
 //    __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "max = %f ::::: min = %f\n", max, min);
 
-    fclose(out);
+//    fclose(out);
     free(data);
 
     return env->NewStringUTF("");
 }
 
 
-*/
 
 
 
@@ -228,6 +316,8 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
 
 
+
+/*
 
 #include <jni.h>
 #include <string>
@@ -383,39 +473,34 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
                      if(is_not_wav) {
 
-/*                         double high_peak = 0;
+                         double high_peak = 0;
                          double low_peak = 0;
 
-                         for(int s = 0; s < 4; ++s) {
-                            for(int c = 0; c < codecContext->channels; ++c) {
-//                                float sample = getSample(codecContext, frame->extended_data[c], s);
-//                                __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "%d\n", frame->extended_data[c][s]);
-                                if(frame->extended_data[c][s] > high_peak) {
-                                    high_peak = frame->extended_data[c][s];
-                                }
+                         for(int i = 0; i < 8; i++) {
+//                             for(int c = 0; c < frame->channels; c++) {
+                                 if (frame->data[0][i] > high_peak) {
+                                     high_peak = frame->data[0][i];
+                                 }
 
-                                if(frame->extended_data[c][s] < low_peak) {
-                                    low_peak = frame->extended_data[c][s];
-                                }
-                            }
+                                 if (frame->data[0][i] < low_peak) {
+                                     low_peak = frame->data[0][i];
+                                 }
+//                             }
                          }
 
-                         int amplitude = (int)(high_peak - low_peak);
+                         fprintf(out, "%d\n", ((int)(high_peak)));
 
-                         fprintf(out, "%d\n", (amplitude));*/
 
-                        float sum = 0;
-                        for(int s = 0; s < 4; ++s) {
-                            for(int c = 0; c < codecContext->channels; ++c) {
-                                float sample = getSample(codecContext, frame->extended_data[c], s);
-                                if(sample < 0)
-                                    sum += -sample;
-                                else
-                                    sum += sample;
-                            }
-                        }
-                        int amplitude = pow(((int)(((sum * 2) / 4) * 100)), 0.5);
-                        fprintf(out, "%d\n", amplitude);
+
+//                        float sum = 0;
+//                        for(int s = 0; s < 4; ++s) {
+//                            for(int c = 0; c < codecContext->channels; ++c) {
+//                                float sample = getSample(codecContext, frame->extended_data[c], s);
+//                                sum += abs(sample);
+//                            }
+//                        }
+//                        int amplitude = sqrt(((int)((sum) * 100)));
+//                        fprintf(out, "%d\n", amplitude);
 
                      } else {
 //                         __android_log_print(ANDROID_LOG_VERBOSE, "AMPLITUDA_NDK_LOG", "IS WAV\n");
@@ -455,6 +540,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     avformat_close_input(&formatContext);
     return env->NewStringUTF(resultFrame.data());
 }
+*/
 
 
 

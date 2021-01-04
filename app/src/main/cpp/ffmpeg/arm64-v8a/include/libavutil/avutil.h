@@ -46,7 +46,7 @@
  *
  * @section ffmpeg_versioning Versioning and compatibility
  *
- * Each of the FFmpeg libraries contains a version.h header, which defines a
+ * Each of the FFmpeg libraries contains a versmp3 ion.h header, which defines a
  * major, minor and micro version number with the
  * <em>LIBRARYNAME_VERSION_{MAJOR,MINOR,MICRO}</em> macros. The major version
  * number is incremented with backward incompatible changes - e.g. removing
