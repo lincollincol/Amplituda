@@ -2,6 +2,8 @@
 #include <jni.h>
 #include <android/log.h>
 
+#define SAMPLE_RATE 44100
+
 extern "C" {
 #include "libavutil/opt.h"
 #include "libavcodec/avcodec.h"
@@ -59,12 +61,13 @@ float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex
 }
 
 //int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
-int decode_audio_file(const char* path, const int sample_rate) {
+int decode_audio_file(const char* path, const char* cache, const int sample_rate) {
 
-    FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
+    // clear prev data
+    FILE *clf = fopen(cache, "w+");
     fclose(clf);
-
-    FILE *out = fopen("/storage/emulated/0/Music/audio_data.txt", "a+");
+    // reopen
+    FILE *out = fopen(cache, "a+");
 
     // initialize all muxers, demuxers and protocols for libavformat
     // (does nothing if called twice during the course of one program execution)
@@ -126,7 +129,6 @@ int decode_audio_file(const char* path, const int sample_rate) {
     AVFrame* frame = av_frame_alloc();
     if (!frame) {
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error allocating the frame");
-
         return -1;
     }
 
@@ -153,7 +155,7 @@ int decode_audio_file(const char* path, const int sample_rate) {
                     sum += sample * sample;
                 }
             }
-            fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 10000)));
+            fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 1000)));
         } else {
             // amplitude
             int high_peak = 0, low_peak = 0;
@@ -184,29 +186,22 @@ int decode_audio_file(const char* path, const int sample_rate) {
 }
 
 
-extern "C" JNIEXPORT jstring JNICALL
+extern "C" JNIEXPORT jint JNICALL
 
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
         jobject,
-        jstring audio_path
+        jstring audio_path,
+        jstring cache_path
 ) {
-
-    // decode data
-    int sample_rate = 44100;
-//    double* data;
-//    int size;
-
     const char* path = env->GetStringUTFChars(audio_path, 0);
+    const char* cache = env->GetStringUTFChars(cache_path, 0);
 
-//    if (decode_audio_file(path, sample_rate, &data, &size) != 0) {
-    if (decode_audio_file(path, sample_rate) != 0) {
-        return env->NewStringUTF("");
+    if (decode_audio_file(path, cache, SAMPLE_RATE) != 0) {
+        return -1;
     }
 
-//    free(data);
-
     env->ReleaseStringUTFChars(audio_path, path);
-
-    return env->NewStringUTF("");
+    env->ReleaseStringUTFChars(cache_path, cache);
+    return 0;
 }
