@@ -12,7 +12,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new Amplituda(this).fromPath("/storage/emulated/0/Music/kygo.wav")
+        new Amplituda(this).fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json ====== " + json);
                 })
