@@ -1,5 +1,6 @@
 package linc.com.amplituda;
 
+import android.content.Context;
 import android.text.TextUtils;
 import java.io.File;
 import java.util.ArrayList;
@@ -12,6 +13,11 @@ public class Amplituda {
     public static int NEW_LINE_SEQUENCE_FORMAT = 1;
 
     private String resultLog;
+    private Context context;
+
+    public Amplituda(Context context) {
+
+    }
 
     /**
      * Calculate amplitudes from file

@@ -1,5 +1,6 @@
 
 #include <jni.h>
+#include <android/log.h>
 
 extern "C" {
 #include "libavutil/opt.h"
@@ -57,7 +58,8 @@ float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex
 
 }
 
-int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
+//int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
+int decode_audio_file(const char* path, const int sample_rate) {
 
     FILE *clf = fopen("/storage/emulated/0/Music/audio_data.txt", "w+");
     fclose(clf);
@@ -71,11 +73,11 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     // get format from audio file
     AVFormatContext* format = avformat_alloc_context();
     if (avformat_open_input(&format, path, NULL, NULL) != 0) {
-        fprintf(stderr, "Could not open file '%s'\n", path);
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open file '%s'\n", path);
         return -1;
     }
     if (avformat_find_stream_info(format, NULL) < 0) {
-        fprintf(stderr, "Could not retrieve stream info from file '%s'\n", path);
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not retrieve stream info from file '%s'\n", path);
         return -1;
     }
 
@@ -88,7 +90,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
         }
     }
     if (stream_index == -1) {
-        fprintf(stderr, "Could not retrieve audio stream from file '%s'\n", path);
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not retrieve audio stream from file '%s'\n", path);
         return -1;
     }
     AVStream* stream = format->streams[stream_index];
@@ -96,7 +98,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     // find & open codec
     AVCodecContext* codec = stream->codec;
     if (avcodec_open2(codec, avcodec_find_decoder(codec->codec_id), NULL) < 0) {
-        fprintf(stderr, "Failed to open decoder for stream #%u in file '%s'\n", stream_index, path);
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to open decoder for stream #%u in file '%s'\n", stream_index, path);
         return -1;
     }
 
@@ -114,7 +116,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_DBL,  0);
     swr_init(swr);
     if (!swr_is_initialized(swr)) {
-        fprintf(stderr, "Resampler has not been properly initialized\n");
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Resampler has not been properly initialized");
         return -1l;
     }
 
@@ -123,14 +125,10 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     av_init_packet(&packet);
     AVFrame* frame = av_frame_alloc();
     if (!frame) {
-        fprintf(stderr, "Error allocating the frame\n");
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error allocating the frame");
+
         return -1;
     }
-
-    // iterate through frames
-    *data = NULL;
-    *size = 0;
-
 
     while (av_read_frame(format, &packet) >= 0) {
         // decode one frame
@@ -145,7 +143,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
         double* buffer;
         av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
         int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
-// ext
+
         if(is_not_wav) {
             // rms
             float sum = 0;
@@ -156,7 +154,6 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
                 }
             }
             fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 10000)));
-
         } else {
             // amplitude
             int high_peak = 0, low_peak = 0;
@@ -172,30 +169,7 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
             fprintf(out, "%d\n", (high_peak - low_peak - 128));
         }
 
-        // append resampled frames to data
-        *data = (double*) realloc(*data, (*size + frame->nb_samples) * sizeof(double));
-        memcpy(*data + *size, buffer, frame_count * sizeof(double));
-        *size += frame_count;
     }
-
-//    while (av_read_frame(format, &packet) >= 0) {
-//        // decode one frame
-//        int gotFrame;
-//        if (avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0) {
-//            break;
-//        }
-//        if (!gotFrame) {
-//            continue;
-//        }
-//        // resample frames
-//        double* buffer;
-//        av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
-//        int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (uint8_t**) frame->data, frame->nb_samples);
-//        // append resampled frames to data
-//        *data = (double*) realloc(*data, (*size + frame->nb_samples) * sizeof(double));
-//        memcpy(*data + *size, buffer, frame_count * sizeof(double));
-//        *size += frame_count;
-//    }
 
     // clean up
     av_frame_free(&frame);
@@ -220,13 +194,19 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // decode data
     int sample_rate = 44100;
-    double* data;
-    int size;
-    if (decode_audio_file("/storage/emulated/0/Music/kygo.wav", sample_rate, &data, &size) != 0) {
+//    double* data;
+//    int size;
+
+    const char* path = env->GetStringUTFChars(audio_path, 0);
+
+//    if (decode_audio_file(path, sample_rate, &data, &size) != 0) {
+    if (decode_audio_file(path, sample_rate) != 0) {
         return env->NewStringUTF("");
     }
 
-    free(data);
+//    free(data);
+
+    env->ReleaseStringUTFChars(audio_path, path);
 
     return env->NewStringUTF("");
 }

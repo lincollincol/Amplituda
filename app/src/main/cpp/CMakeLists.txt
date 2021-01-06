@@ -23,7 +23,7 @@ set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
 add_library(native-lib SHARED native-lib.cpp )
 set_target_properties(native-lib PROPERTIES LINKER_LANGUAGE CXX)
 
-#find_library( log-lib log )
+find_library( log-lib log )
 
 target_link_libraries(
         native-lib
@@ -32,5 +32,5 @@ target_link_libraries(
         avformat
         avcodec
         swresample
-#        ${log-lib}
+        ${log-lib}
         )
