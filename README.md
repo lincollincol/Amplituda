@@ -24,7 +24,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:Amplituda:1.3'
+  implementation 'com.github.lincollincol:Amplituda:1.4'
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 <dependency>
   <groupId>com.github.lincollincol</groupId>
   <artifactId>Amplituda</artifactId>
-  <version>1.3</version>
+  <version>1.4</version>
 </dependency>
 ```
 
@@ -78,7 +78,7 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
 
 #### Java
 ``` java
-Amplituda amplituda = new Amplituda();
+Amplituda amplituda = new Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsJson(json -> {
@@ -88,7 +88,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 ```
 #### Kotlin
 ``` kotlin
-val amplituda = Amplituda();
+val amplituda = Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsJson {
@@ -101,7 +101,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
 #### Java
 ``` java
-Amplituda amplituda = new Amplituda();
+Amplituda amplituda = new Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsList(list -> {
@@ -115,7 +115,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 ```
 #### Kotlin
 ``` kotlin
-val amplituda = Amplituda();
+val amplituda = Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsList {
@@ -132,7 +132,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
 #### Java
 ``` java
-Amplituda amplituda = new Amplituda();
+Amplituda amplituda = new Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, defSeq -> {
@@ -142,7 +142,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 ```
 #### Kotlin
 ``` kotlin
-val amplituda = Amplituda();
+val amplituda = Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT) {
@@ -155,7 +155,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
 #### Java
 ``` java
-Amplituda amplituda = new Amplituda();
+Amplituda amplituda = new Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ", customSeq -> {
@@ -165,7 +165,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 ```
 #### Kotlin
 ``` kotlin
-val amplituda = Amplituda();
+val amplituda = Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ") {
@@ -178,7 +178,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
 #### Java
 ``` java
-Amplituda amplituda = new Amplituda();
+Amplituda amplituda = new Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
@@ -198,7 +198,7 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 ```
 #### Kotlin
 ``` kotlin
-val amplituda = Amplituda();
+val amplituda = Amplituda(context);
 . . .
 amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
          .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT) {
@@ -219,15 +219,11 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
 ### Supported formats (tested):
 * mp3
+* wav
 * opus
 * oga
 * ogg 
-* m4a
-* mp4
 * test more formats and contact me.
-  
-### Unsupported formats:
-* wav
 
 ## WARNING
 ### Amplituda process audio in the main thread !  You can run Amplituda with RxJava, Kotlin coroutines and Java Threads to process audio in the background therad.
