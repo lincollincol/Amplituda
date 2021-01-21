@@ -29,7 +29,7 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param audio - source file
      */
-    public Amplituda fromFile(final File audio)  {
+    public synchronized Amplituda fromFile(final File audio)  {
         if(!audio.exists()) {
             Log.e(APP_TAG, "Wrong file! Please check path and try again!");
         } else {
