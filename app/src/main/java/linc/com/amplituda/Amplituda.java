@@ -52,6 +52,8 @@ public final class Amplituda {
         return this;
     }
 
+    // TODO: 26.01.21 get amplitudes form specific second
+
     /**
      * Convert result amplitudes to List
      * @param listCallback - result callback
