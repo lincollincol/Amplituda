@@ -21,7 +21,7 @@ public final class Amplituda {
     private String amplitudes;
 
     public Amplituda(Context context) {
-        this.temporaryAmplitudaDataFile = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        this.temporaryAmplitudaDataFile = context.getCacheDir()
                 .getPath() + File.separator + AMPLITUDA_TMP_VALUES;
     }
 
