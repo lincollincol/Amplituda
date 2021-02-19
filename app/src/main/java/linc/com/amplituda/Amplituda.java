@@ -36,6 +36,7 @@ public final class Amplituda {
         if(!audio.exists()) {
             Log.e(APP_TAG, "Wrong file! Please check path and try again!");
         } else {
+            FileManager.clearCache();
             int code = amplitudesFromAudioJNI(
                     audio.getPath(),
                     FileManager.provideTempFile(TXT_TEMP),

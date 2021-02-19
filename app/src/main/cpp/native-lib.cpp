@@ -173,12 +173,6 @@ void decode_audio_file(
         const char* input_audio,
         const char* temp_txt
 ) {
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "INPUT = %s", input_audio);
-
-    // clear prev data
-    FILE *clf = fopen(temp_txt, "w+");
-    fclose(clf);
-    // reopen
     FILE *out = fopen(temp_txt, "a+");
 
     // initialize all muxers, demuxers and protocols for libavformat
@@ -222,8 +216,7 @@ void decode_audio_file(
         return;
     }
 
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "%s", codec->codec->name);
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "channels = %d", codec->channels);
+    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Codec info: %s", codec->codec->name);
 
     while (av_read_frame(format, &packet) >= 0) {
         // decode one frame
@@ -257,7 +250,6 @@ void decode_audio_file(
             }
             fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 100)));
         }
-
     }
 
     // clean up
@@ -294,141 +286,3 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     env->ReleaseStringUTFChars(audio_cache, temp_audio);
     return 0;
 }
-
-
-/*
-int decode_audio_file(
-        const char* input_audio,
-        const char* temp_txt,
-        const char* temp_audio
-) {
-
-    // clear prev data
-    FILE *clf = fopen(temp_txt, "w+");
-    fclose(clf);
-    // reopen
-    FILE *out = fopen(temp_txt, "a+");
-
-    // initialize all muxers, demuxers and protocols for libavformat
-    // (does nothing if called twice during the course of one program execution)
-    av_register_all();
-
-    // get format from audio file
-    AVFormatContext* format = avformat_alloc_context();
-    if (avformat_open_input(&format, input_audio, NULL, NULL) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open file '%s'. Check READ and WRITE permissions.\n", input_audio);
-        return -1;
-    }
-    if (avformat_find_stream_info(format, NULL) < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not retrieve stream info from file '%s'\n", input_audio);
-        return -1;
-    }
-
-    // Find the index of the first audio stream
-    int stream_index =- 1;
-    for (int i=0; i<format->nb_streams; i++) {
-        if (format->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-            stream_index = i;
-            break;
-        }
-    }
-    if (stream_index == -1) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not retrieve audio stream from file '%s'\n", input_audio);
-        return -1;
-    }
-    AVStream* stream = format->streams[stream_index];
-
-    // find & open codec
-    AVCodecContext* codec = stream->codec;
-    if (avcodec_open2(codec, avcodec_find_decoder(codec->codec_id), NULL) < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to open decoder for stream #%u in file '%s'\n", stream_index, input_audio);
-        return -1;
-    }
-
-    int is_not_wav = av_sample_fmt_is_planar(codec->sample_fmt);
-
-    // prepare resampler
-    struct SwrContext* swr = swr_alloc();
-    av_opt_set_int(swr, "in_channel_count",  codec->channels, 0);
-    av_opt_set_int(swr, "out_channel_count", 1, 0);
-    av_opt_set_int(swr, "in_channel_layout",  codec->channel_layout, 0);
-    av_opt_set_int(swr, "out_channel_layout", AV_CH_LAYOUT_MONO, 0);
-    av_opt_set_int(swr, "in_sample_rate", codec->sample_rate, 0);
-    av_opt_set_int(swr, "out_sample_rate", SAMPLE_RATE, 0);
-    av_opt_set_sample_fmt(swr, "in_sample_fmt",  codec->sample_fmt, 0);
-    av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_DBL,  0);
-    swr_init(swr);
-    if (!swr_is_initialized(swr)) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Resampler has not been properly initialized");
-        return -1l;
-    }
-
-    // prepare to read data
-    AVPacket packet;
-    av_init_packet(&packet);
-    AVFrame* frame = av_frame_alloc();
-    if (!frame) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error allocating the frame");
-        return -1;
-    }
-
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "%s", codec->codec->name);
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "channels = %d", codec->channels);
-
-
-    while (av_read_frame(format, &packet) >= 0) {
-        // decode one frame
-        int gotFrame;
-        if (avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0) {
-            break;
-        }
-        if (!gotFrame) {
-            continue;
-        }
-        // resample frames
-        double* buffer;
-        av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
-        int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
-
-        if(is_not_wav) {
-            // planar
-            float sum = 0;
-            for(int i = 0; i < frame_count; i++) {
-                for(int j = 0; j < frame->channels; j++) {
-                    float sample = getSample(codec, frame->data[j], i);
-                    sum += sample * sample;
-                }
-            }
-            fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 1000)));
-        } else {
-            if(strcmp(codec->codec->name, "pcm_u8") == 0) {
-                // pcm_u8
-                float sum = 0;
-                for(int i = 0; i < frame_count; i++) {
-                    float sample = getSample(codec, frame->data[0], i);
-                    sum += sample * sample;
-                }
-                fprintf(out, "%d\n", ((int)(sqrt(sum / frame_count) * 1000)));
-            } else {
-
-
-            }
-
-
-        }
-
-    }
-
-    // clean up
-    av_frame_free(&frame);
-    swr_free(&swr);
-    avcodec_close(codec);
-    avformat_free_context(format);
-
-    fclose(out);
-    // success
-    return 0;
-
-}
-
-*/
