@@ -10,19 +10,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UnknownFormatFlagsException;
 
+import static linc.com.amplituda.FileManager.AUDIO_TEMP;
+import static linc.com.amplituda.FileManager.TXT_TEMP;
+
 public final class Amplituda {
+
+    // 6.77
+    // 7.01
 
     public static final int SINGLE_LINE_SEQUENCE_FORMAT = 0;
     public static final int NEW_LINE_SEQUENCE_FORMAT = 1;
-    private static final String AMPLITUDA_TMP_VALUES = "amplituda_tmp_values.txt";
     private static final String APP_TAG = "Amplituda";
 
-    private final String temporaryAmplitudaDataFile;
     private String amplitudes;
 
     public Amplituda(Context context) {
-        this.temporaryAmplitudaDataFile = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-                .getPath() + File.separator + AMPLITUDA_TMP_VALUES;
+        FileManager.init(context);
     }
 
     /**
@@ -33,12 +36,16 @@ public final class Amplituda {
         if(!audio.exists()) {
             Log.e(APP_TAG, "Wrong file! Please check path and try again!");
         } else {
-            int code = amplitudesFromAudioJNI(audio.getPath(), temporaryAmplitudaDataFile);
+            int code = amplitudesFromAudioJNI(
+                    audio.getPath(),
+                    FileManager.provideTempFile(TXT_TEMP),
+                    FileManager.provideTempFile(AUDIO_TEMP)
+            );
             if(code != 0) {
                 Log.e(APP_TAG, "Something went wrong! Check error log with \"Amplituda\" tag!");
             }
-            this.amplitudes = FileManager.readFile(temporaryAmplitudaDataFile);
-            FileManager.deleteFile(temporaryAmplitudaDataFile);
+            this.amplitudes = FileManager.readFile(FileManager.provideTempFile(TXT_TEMP));
+            FileManager.clearCache();
         }
         return this;
     }
@@ -153,6 +160,6 @@ public final class Amplituda {
         System.loadLibrary("native-lib");
     }
 
-    native int amplitudesFromAudioJNI(String pathToAudio, String pathToCache);
+    native int amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
 
 }
