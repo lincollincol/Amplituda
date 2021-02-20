@@ -12,6 +12,7 @@ import java.io.IOException;
 final class FileManager {
 
     private static String cache;
+    private static String runtime;
     static final String TXT_TEMP = "amplituda_tmp_text.txt";
     static final String AUDIO_TEMP = "amplituda_tmp_audio.mp3";
 
@@ -52,6 +53,14 @@ final class FileManager {
         if(file.exists()) {
             file.delete();
         }
+    }
+
+    synchronized static void saveRuntimePath(String path) {
+        runtime = path;
+    }
+
+    synchronized static String retrieveRuntimePath() {
+        return runtime;
     }
 
 }

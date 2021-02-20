@@ -15,7 +15,6 @@ extern "C" {
 #include "libswresample/swresample.h"
 }
 
-
 float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
     int64_t val = 0;
     float ret = 0;
@@ -168,7 +167,6 @@ int process_audio(const char* input_audio, const char* temp_audio) {
     return result_code;
 }
 
-//int decode_audio_file(const char* path, const int sample_rate, double** data, int* size) {
 void decode_audio_file(
         const char* input_audio,
         const char* temp_txt
@@ -215,8 +213,6 @@ void decode_audio_file(
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error allocating the frame");
         return;
     }
-
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Codec info: %s", codec->codec->name);
 
     while (av_read_frame(format, &packet) >= 0) {
         // decode one frame
