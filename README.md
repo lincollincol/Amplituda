@@ -24,7 +24,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:Amplituda:1.5'
+  implementation 'com.github.lincollincol:Amplituda:1.6'
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 <dependency>
   <groupId>com.github.lincollincol</groupId>
   <artifactId>Amplituda</artifactId>
-  <version>1.5</version>
+  <version>1.6</version>
 </dependency>
 ```
 
@@ -216,6 +216,58 @@ amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 0
 */
 ```  
+
+### • Get amplitudes per second
+#### Java
+``` java
+Amplituda amplituda = new Amplituda(context);
+. . .
+amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+         .amplitudesPerSecond(5, list -> {
+            System.out.println(Arrays.toString(list.toArray()));
+         });
+/* Output: 
+[0, 0, 5, 3, . . . 6, 1, 0, 0]
+*/
+```
+#### Kotlin
+``` kotlin
+val amplituda = Amplituda(context);
+. . .
+amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+         .amplitudesPerSecond(5) {
+            println(Arrays.toString(list.toArray()))
+         }
+/* Output: 
+[0, 0, 5, 3, . . . 6, 1, 0, 0]
+*/
+```
+
+### • Get duration from input file
+#### Java
+``` java
+Amplituda amplituda = new Amplituda(context);
+. . .
+amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3");
+System.out.println(amplituda.getDuration(Amplituda.SECONDS));
+System.out.println(amplituda.getDuration(Amplituda.MILLIS));
+/* Output: 
+210
+210000
+*/
+```
+#### Kotlin
+``` kotlin
+val amplituda = Amplituda(context);
+. . .
+amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+println(amplituda.getDuration(Amplituda.SECONDS))
+println(amplituda.getDuration(Amplituda.MILLIS))
+/* Output: 
+210
+210000
+*/
+```
 
 ### Supported formats (tested):
 * mp3
