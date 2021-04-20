@@ -27,7 +27,10 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
 
-        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+        
+
+//        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+        amplituda.fromPath("/storage/emulated/0/Download/Pablo Bolivar - Alchemize.mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json: " + json);
                 })
