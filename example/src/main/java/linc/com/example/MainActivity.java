@@ -30,7 +30,8 @@ public class MainActivity extends AppCompatActivity {
         
 
 //        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-        amplituda.fromPath("/storage/emulated/0/Download/Pablo Bolivar - Alchemize.mp3")
+//        long start = System.currentTimeMillis();
+        amplituda.fromPath("/storage/emulated/0/Music/log.mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json: " + json);
                 })
@@ -53,6 +54,10 @@ public class MainActivity extends AppCompatActivity {
                 .amplitudesPerSecond(5, list -> {
                     System.out.println("Amplitudes at second 5: " + Arrays.toString(list.toArray()));
                 });
+
+        long end = System.currentTimeMillis();
+
+//        System.out.println("Processing time: " + ((end - start) / 1000));
 
     }
 }
