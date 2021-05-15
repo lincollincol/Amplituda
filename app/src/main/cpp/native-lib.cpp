@@ -230,7 +230,6 @@ void decode_audio_file(
         if (!gotFrame) {
             continue;
         }
-//        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Frame not SKIPED");
 
         // resample frames
         double* buffer;
