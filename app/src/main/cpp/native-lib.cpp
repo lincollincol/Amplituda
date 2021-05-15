@@ -1,7 +1,6 @@
 #include <jni.h>
 #include <android/log.h>
 #include "lame/include/lame.h"
-
 #define SAMPLE_RATE 44100
 
 #define ORIGINAL_INPUT 11
@@ -13,6 +12,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libswresample/swresample.h"
+
 }
 
 float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
@@ -82,6 +82,9 @@ AVStream* provideStream(AVFormatContext *format) {
     }
     // Find the index of the first audio stream
     int stream_index =- 1;
+
+    __android_log_print(ANDROID_LOG_INFO, "AMPLITUDA", "Number of streams = %d\n", format->nb_streams);
+
     for (int i=0; i<format->nb_streams; i++) {
         if (format->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
             stream_index = i;
@@ -187,6 +190,8 @@ void decode_audio_file(
         return;
     }
 
+    __android_log_print(ANDROID_LOG_INFO, "AMPLITUDA", "Audio codec found = %s \n", (codec->codec_type == AVMEDIA_TYPE_AUDIO ? "true" : "false"));
+
     int is_not_wav = av_sample_fmt_is_planar(codec->sample_fmt);
 
     // prepare resampler
@@ -217,12 +222,16 @@ void decode_audio_file(
     while (av_read_frame(format, &packet) >= 0) {
         // decode one frame
         int gotFrame;
+
         if (avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0) {
-            break;
+            __android_log_print(ANDROID_LOG_INFO, "AMPLITUDA", "Skip invalid frame");
+            continue;
         }
         if (!gotFrame) {
             continue;
         }
+//        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Frame not SKIPED");
+
         // resample frames
         double* buffer;
         av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);

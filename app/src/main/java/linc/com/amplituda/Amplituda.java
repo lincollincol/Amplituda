@@ -72,11 +72,19 @@ public final class Amplituda {
      * @param listCallback - result callback
      */
     public Amplituda amplitudesAsList(final ListCallback listCallback) {
-        if(amplitudes == null)
+        if(amplitudes == null || amplitudes.isEmpty())
             return this;
+        System.out.println("============= AMPS");
+        System.out.println(amplitudes);
         String[] log = amplitudes.split("\n");
         List<Integer> amplitudes = new ArrayList<>();
+
+        // TODO: 10.05.21 NUMBER FORMAT EXCEPTION
+
         for (String amplitude : log) {
+            if(amplitude.isEmpty()) {
+                break;
+            }
             amplitudes.add(Integer.valueOf(amplitude));
         }
         listCallback.onSuccess(amplitudes);
