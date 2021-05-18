@@ -24,7 +24,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:Amplituda:1.6'
+  implementation 'com.github.lincollincol:Amplituda:1.7'
 }
 ```
 
@@ -41,7 +41,7 @@ dependencies {
 <dependency>
   <groupId>com.github.lincollincol</groupId>
   <artifactId>Amplituda</artifactId>
-  <version>1.6</version>
+  <version>1.7</version>
 </dependency>
 ```
 
