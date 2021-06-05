@@ -11,6 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EventListener;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,11 +29,41 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
 
-        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+//        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+
+
+        /*Observable.create(emitter -> {
+            try {
+                for(int i = 0; i < 5; i++) {
+                    long start = System.currentTimeMillis();
+                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3");
+                    System.out.println();
+                    emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000));
+                }
+                emitter.onComplete();
+            } catch (Exception e) {
+                emitter.onError(e);
+            }
+        }).subscribeOn(Schedulers.io())
+        .subscribe(
+                time -> {
+                    System.out.println("NEXT");
+                    System.out.println(time);
+                },
+                error -> {
+                    System.out.println("ERROR");
+                    error.printStackTrace();
+                },
+                () -> {
+                    System.out.println("COMPLETE");
+                });*/
+
+
+        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
                 .amplitudesAsJson(json -> {
                     System.out.println("As json: " + json);
                 })
-                .amplitudesAsList(list -> {
+                /*.amplitudesAsList(list -> {
                     System.out.print("As list: ");
                     for(int tmp : list) {
                         System.out.print(tmp + " ");
@@ -47,19 +78,10 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
                     System.out.println("As new line sequence: " + newLineSeq);
-                    try {
-                        FileWriter fw = new FileWriter("/storage/emulated/0/Music/amps.txt");
-                        fw.write(newLineSeq);
-                        fw.flush();
-                        fw.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
                 })
                 .amplitudesPerSecond(5, list -> {
                     System.out.println("Amplitudes at second 5: " + Arrays.toString(list.toArray()));
-                });
+                })*/;
 
     }
 }

@@ -108,7 +108,7 @@ AVCodecContext* provideCodec(AVStream *stream) {
     return codec;
 }
 
-int process_audio(const char* input_audio, const char* temp_audio) {
+int prepare_audio(const char* input_audio, const char* temp_audio) {
     int result_code = ORIGINAL_INPUT;
 
     // initialize all muxers, demuxers and protocols for libavformat
@@ -277,7 +277,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     const char* temp_txt = env->GetStringUTFChars(txt_cache, 0);
     const char* temp_audio = env->GetStringUTFChars(audio_cache, 0);
 
-    int processed_result = process_audio(input_audio, temp_audio);
+    int processed_result = prepare_audio(input_audio, temp_audio);
 
     if(processed_result == ORIGINAL_INPUT) {
         decode_audio_file(input_audio, temp_txt);
