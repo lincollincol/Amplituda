@@ -33,8 +33,10 @@ dependencies {
     implementation project(":app")
 
     // ReactiveX
-    /*def rx_version = "3.0.0"
+    def rx_version = "3.0.0"
     implementation "io.reactivex.rxjava3:rxandroid:$rx_version"
-    implementation "io.reactivex.rxjava3:rxjava:$rx_version"*/
+    implementation "io.reactivex.rxjava3:rxjava:$rx_version"
+
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
 
 }

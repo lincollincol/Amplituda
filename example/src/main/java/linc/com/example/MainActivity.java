@@ -2,22 +2,11 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
-import android.os.Handler;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EventListener;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import leakcanary.LeakCanary;
 import linc.com.amplituda.Amplituda;
 
 public class MainActivity extends AppCompatActivity {
@@ -27,18 +16,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Amplituda amplituda = new Amplituda(this);
+        Amplituda amplituda = new Amplituda(getApplicationContext());
 
 //        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
-
-        /*Observable.create(emitter -> {
+        Observable.create(emitter -> {
             try {
-                for(int i = 0; i < 5; i++) {
+                for(int i = 0; i < 1; i++) {
                     long start = System.currentTimeMillis();
-                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3");
-                    System.out.println();
-                    emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000));
+                    emitter.onNext("File #" + i);
+//                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
+                    amplituda.fromPath("/storage/emulated/0/Music/queen.mp3")
+                        .amplitudesAsJson(json -> {
+                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000) + " = " + json);
+                        })
+                    .releaseCurrent();
                 }
                 emitter.onComplete();
             } catch (Exception e) {
@@ -56,13 +48,15 @@ public class MainActivity extends AppCompatActivity {
                 },
                 () -> {
                     System.out.println("COMPLETE");
-                });*/
+                });
 
 
-        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
-                .amplitudesAsJson(json -> {
-                    System.out.println("As json: " + json);
-                })
+//        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3") // 137816
+//        amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3") // 7810
+//        amplituda.fromPath("/storage/emulated/0/Music/blt.mp3") // 14699
+//                .amplitudesAsJson(json -> {
+//                    System.out.println("As json: " + json);
+//                })
                 /*.amplitudesAsList(list -> {
                     System.out.print("As list: ");
                     for(int tmp : list) {

@@ -6,7 +6,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 
 final class FileManager {
@@ -20,18 +25,56 @@ final class FileManager {
         if(cache == null) {
             cache = context.getCacheDir().getPath() + File.separator;
         }
+
     }
 
-    synchronized static String provideTempFile(final String temp) {
+    /*synchronized static String prepareData() {
+        File parent = new File("/storage/emulated/0/Music/");
+        File out = new File("/storage/emulated/0/Music/amplituda_tmp_full.txt");
+
+        try {
+            FileWriter writer = new FileWriter(out);
+
+            List<File> tmp_files = Arrays.asList(parent.listFiles());
+
+            Collections.sort(tmp_files, new Comparator<File>() {
+                public int compare(File o1, File o2) {
+                    return extractInt(o1) - extractInt(o2);
+                }
+
+                int extractInt(File s) {
+                    String num = s.getName().replaceAll("\\D", "");
+                    // return 0 if no digits found
+                    return num.isEmpty() ? 0 : Integer.parseInt(num);
+                }
+            });
+
+            for (File file : tmp_files) {
+                if(file.getName().startsWith("amplituda")) {
+                    writer.append(readFile(file.getPath()));
+                    file.delete();
+                }
+            }
+
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return readFile(out.getPath());
+    }*/
+
+    static String provideTempFile(final String temp) {
         return cache + temp;
     }
 
-    synchronized static void clearCache() {
+    static void clearCache() {
         deleteFile(cache + TXT_TEMP);
         deleteFile(cache + AUDIO_TEMP);
+        new File("/storage/emulated/0/Music/amplituda_tmp_full.txt").delete();
     }
 
-    synchronized static String readFile(final String path) {
+    static String readFile(final String path) {
         StringBuilder output = new StringBuilder();
         try {
             FileReader reader = new FileReader(path);
@@ -48,18 +91,18 @@ final class FileManager {
         return output.toString();
     }
 
-    synchronized static void deleteFile(final String path) {
+    static void deleteFile(final String path) {
         File file = new File(path);
         if(file.exists()) {
             file.delete();
         }
     }
 
-    synchronized static void saveRuntimePath(String path) {
+    static void saveRuntimePath(String path) {
         runtime = path;
     }
 
-    synchronized static String retrieveRuntimePath() {
+    static String retrieveRuntimePath() {
         return runtime;
     }
 
