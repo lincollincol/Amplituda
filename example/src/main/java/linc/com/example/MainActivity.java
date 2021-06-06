@@ -4,6 +4,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.reflect.Field;
+
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import leakcanary.LeakCanary;
@@ -22,13 +26,16 @@ public class MainActivity extends AppCompatActivity {
 
         Observable.create(emitter -> {
             try {
-                for(int i = 0; i < 1; i++) {
+                for(int i = 0; i < 25; i++) {
                     long start = System.currentTimeMillis();
                     emitter.onNext("File #" + i);
 //                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
-                    amplituda.fromPath("/storage/emulated/0/Music/queen.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/dwv.mp4")
+//                    amplituda.fromPath("/storage/emulated/0/Music/kygo_s16.wav")
+                    amplituda.fromPath("/storage/emulated/0/Music/kygo_u8.wav")
+//                            .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext)
                         .amplitudesAsJson(json -> {
-                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000) + " = " + json);
+                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000f) + " = " + json);
                         })
                     .releaseCurrent();
                 }
@@ -39,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
         }).subscribeOn(Schedulers.io())
         .subscribe(
                 time -> {
+
+//                    FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
+//                    fw.write(time.toString());
+//                    fw.close();
                     System.out.println("NEXT");
                     System.out.println(time);
                 },

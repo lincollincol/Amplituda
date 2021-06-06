@@ -53,10 +53,14 @@ public final class Amplituda {
             if(code != 0) {
                 Log.e(APP_TAG, "Something went wrong! Check error log with \"Amplituda\" tag!");
             }
-//            this.amplitudes = FileManager.prepareData();
             this.amplitudes = FileManager.readFile(FileManager.provideTempFile(TXT_TEMP));
             FileManager.clearCache();
         }
+        return this;
+    }
+
+    public Amplituda setErrorListener() {
+        // TODO: 06.06.21 error listener
         return this;
     }
 

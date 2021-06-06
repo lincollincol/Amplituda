@@ -6,6 +6,9 @@
 //#include <string.h>
 
 
+#include "Converter.h"
+#include "lame/include/lame.h"
+
 extern "C" {
 #include "libavutil/timestamp.h"
 #include "libavutil/samplefmt.h"
@@ -13,8 +16,8 @@ extern "C" {
 }
 
 static AVFormatContext *fmt_ctx = NULL;
-static AVCodecContext /**video_dec_ctx = NULL,*/ *audio_dec_ctx;
-static AVStream /**video_stream = NULL, */*audio_stream = NULL;
+static AVCodecContext *audio_dec_ctx;
+static AVStream *audio_stream = NULL;
 static const char *src_filename = NULL;
 static FILE *audio_dst_file = NULL;
 
@@ -220,37 +223,50 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         jstring txt_cache,
         jstring audio_cache
 ) {
+
     int ret = 0;
-    int frames = 0;
     int is_planar = 0;
+    bool converted = false;
 
-//    src_filename = "/storage/emulated/0/Music/kygo.mp3";      // true
-//    src_filename = "/storage/emulated/0/Music/queen.mp3";     // true
-//    src_filename = "/storage/emulated/0/Music/kygo_u8.wav";   // true
-//    src_filename = "/storage/emulated/0/Music/kygo_s16.wav";    // false
+    restart:
 
-    /* open input file, and allocate format context */
-    if (avformat_open_input(&fmt_ctx, src_filename, NULL, NULL) < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open source file %s\n", src_filename);
-        exit(1);
+    const char* temp_txt = env->GetStringUTFChars(txt_cache, 0);
+    const char* temp_audio = env->GetStringUTFChars(audio_cache, 0);
+    // Use converted file instead of input (only when converted flag - true).
+    const char* input_audio = converted ? temp_audio : env->GetStringUTFChars(audio_path, 0);
+
+
+    // open input file, and allocate format context
+    if (avformat_open_input(&fmt_ctx, input_audio, NULL, NULL) < 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open source file %s\n", input_audio);
+        return -1;
     }
 
-    /* retrieve stream information */
+    // retrieve stream information
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find stream information\n");
-        exit(1);
+        return -1;
     }
 
     if (open_codec_context(&audio_stream_idx, &audio_dec_ctx, fmt_ctx, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = fmt_ctx->streams[audio_stream_idx];
-        audio_dst_file = fopen("/storage/emulated/0/Music/amps.txt", "a+");
+        audio_dst_file = fopen(temp_txt, "a+");
         is_planar = av_sample_fmt_is_planar(audio_dec_ctx->sample_fmt);
+
+        // If file is wav (planar) and codec is not pcm_u8
+        if(!is_planar && strcmp(audio_dec_ctx->codec->name, "pcm_u8") != 0) {
+            wav2mp3(input_audio, temp_audio);
+            converted = true;
+            goto end;
+        } else {
+            converted = false;
+        }
     }
 
-    /* dump input information to stderr */
-    av_dump_format(fmt_ctx, 0, src_filename, 0);
+    // dump input information to stderr
+    av_dump_format(fmt_ctx, 0, input_audio, 0);
 
-    if (!audio_stream/* && !video_stream*/) {
+    if (!audio_stream) {
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find audio or video stream in the input, aborting\n");
         ret = 1;
         goto end;
@@ -270,12 +286,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         goto end;
     }
 
-
-    /* read frames from the file */
+    // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
-        frames++;
-        // check if the packet belongs to a stream we are interested in, otherwise
-        // skip it
+        // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
             ret = decode_packet(audio_dec_ctx, pkt, &is_planar);
         }
@@ -285,14 +298,11 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
             break;
     }
 
-//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Total frames = %d.\n");
-
-
-    /* flush the decoders */
+    // flush the decoders
     if (audio_dec_ctx)
         decode_packet(audio_dec_ctx, NULL, &is_planar);
 
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Demuxing succeeded. Total: %d\n", frames);
+    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Success!\n");
 
     if (audio_stream) {
         enum AVSampleFormat sfmt = audio_dec_ctx->sample_fmt;
@@ -319,6 +329,13 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         fclose(audio_dst_file);
     av_packet_free(&pkt);
     av_frame_free(&frame);
+
+    env->ReleaseStringUTFChars(audio_path, input_audio);
+    env->ReleaseStringUTFChars(txt_cache, temp_txt);
+    env->ReleaseStringUTFChars(audio_cache, temp_audio);
+
+    if(converted)
+        goto restart;
 
     return ret < 0;
 }
