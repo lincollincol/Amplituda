@@ -15,8 +15,10 @@ int wav2mp3(const char* input, const char* output) {
 
     // Open output temp mp3 file
     FILE *mp3 = fopen(output, "wb");
+
     const int PCM_SIZE = 8192 * 3;
     const int MP3_SIZE = 8192 * 3;
+
     short int pcm_buffer[PCM_SIZE * 2];
     unsigned char mp3_buffer[MP3_SIZE];
 
@@ -34,7 +36,7 @@ int wav2mp3(const char* input, const char* output) {
         totalRead += read * 4;
 
         if (read == 0) write = lame_encode_flush(lame, mp3_buffer, MP3_SIZE);
-        else write = lame_encode_buffer_interleaved(lame,pcm_buffer, read, mp3_buffer, MP3_SIZE);
+        else write = lame_encode_buffer_interleaved(lame, pcm_buffer, read, mp3_buffer, MP3_SIZE);
 
         fwrite(mp3_buffer, write, 1, mp3);
     } while (read != 0);

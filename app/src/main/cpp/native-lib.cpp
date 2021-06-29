@@ -6,7 +6,7 @@
 //#include <string.h>
 
 
-#include "Converter.h"
+//#include "Converter.h"
 #include "lame/include/lame.h"
 
 extern "C" {
@@ -25,17 +25,60 @@ static int audio_stream_idx = -1;
 static AVFrame *frame = NULL;
 static AVPacket *pkt = NULL;
 
-float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
+/*double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
+    double value = 0.0;
+
+    switch (codecCtx->sample_fmt) {
+        case AV_SAMPLE_FMT_U8:
+        case AV_SAMPLE_FMT_U8P:
+            value = buffer[sampleIndex];
+            break;
+            break;
+        case AV_SAMPLE_FMT_S16:
+        case AV_SAMPLE_FMT_S16P:
+            value += ((int16_t *) buffer)[sampleIndex];
+            break;
+        case AV_SAMPLE_FMT_S32:
+        case AV_SAMPLE_FMT_S32P:
+            value += ((int32_t *) buffer)[sampleIndex];
+            break;
+        case AV_SAMPLE_FMT_FLT:
+        case AV_SAMPLE_FMT_FLTP:
+            value += ((float *) buffer)[sampleIndex];
+            break;
+        case AV_SAMPLE_FMT_DBL:
+        case AV_SAMPLE_FMT_DBLP:
+            value += ((double *) buffer)[sampleIndex];
+            break;
+        default: return 0;
+    }
+
+    if (codecCtx->sample_fmt == AV_SAMPLE_FMT_DBL || codecCtx->sample_fmt == AV_SAMPLE_FMT_DBLP || codecCtx->sample_fmt == AV_SAMPLE_FMT_FLT || codecCtx->sample_fmt == AV_SAMPLE_FMT_FLTP) {
+        if (value < -1.0) {
+            value = -1.0;
+        } else if (value > 1.0) {
+            value = 1.0;
+        }
+    }
+
+    return value;
+}*/
+
+double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
     int64_t val = 0;
-    float ret = 0;
+//    float ret = 0;
+    double ret = 0;
     int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
+
+//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Sample size: %d fmt = %d", sampleSize, codecCtx->sample_fmt);
 
     switch(sampleSize) {
         case 1:
             val = (reinterpret_cast<uint8_t*>(buffer))[sampleIndex];
             val -= 127;
             break;
-        case 2: val = (reinterpret_cast<uint16_t*>(buffer))[sampleIndex];
+        case 2:
+            val = (reinterpret_cast<int16_t*>(buffer))[sampleIndex];
             break;
         case 4: val = (reinterpret_cast<uint32_t*>(buffer))[sampleIndex];
             break;
@@ -64,7 +107,7 @@ float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex
         case AV_SAMPLE_FMT_DBL:
         case AV_SAMPLE_FMT_DBLP:
             // double => reinterpret and then static cast down
-            ret = static_cast<float>(*reinterpret_cast<double*>(&val));
+            ret = *reinterpret_cast<double*>(&val);
             break;
         default:
             return 0;
@@ -74,7 +117,7 @@ float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex
 
 }
 
-static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, int* is_planar)
+static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, const int* is_planar, const int* is_pcm_s16)
 {
     int ret = 0;
 
@@ -102,25 +145,61 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, int* is_plana
 
         // write the frame data to output file
         if(dec->codec->type == AVMEDIA_TYPE_AUDIO) {
-            float sum = 0;
+            double sum = 0;
 
-            if(is_planar) { // wav
+            if(*is_pcm_s16) { // mp3
+                // for (c = 0; c < data->channels; ++c)
                 for(int i = 0; i < frame->nb_samples; i++) {
-                    float sample = getSample(audio_dec_ctx, frame->data[0], i);
+                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
                     sum += sample * sample;
                 }
             } else {
                 for(int i = 0; i < frame->nb_samples; i++) {
-                    for(int j = 0; j < frame->channels; j++) {
-                        float sample = getSample(audio_dec_ctx, frame->data[j], i);
-                        sum += sample * sample;
-                    }
+                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
+                    sum += sample * sample;
                 }
             }
 
+            /*if(*is_planar) { // is not wav
+                // for (c = 0; c < data->channels; ++c)
+
+                for(int i = 0; i < frame->nb_samples; i += frame->channels) {
+                    float sample = getSample(audio_dec_ctx, frame->data[0], i);
+                    sum += sample * sample;
+                }
+
+                 for(int i = 0; i < frame->nb_samples; i++) {
+                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
+                     __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Mp3 = %f\n", sample);
+                     sum += sample * sample;
+                 }
+            } else {
+                //for (i = c; i < samples_per_pixel; i += data->channels)
+                if(*is_pcm_s16) {
+                    for(int i = 0; i < frame->nb_samples; i++) {
+//                        double sample = getSample(audio_dec_ctx, frame->data[0], i);
+//                        sum += sample * sample;
+
+                        for(int j = 0; j < frame->channels; j++) {
+                            double sample = getSample(audio_dec_ctx, frame->data[j], i);
+                            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Wav s16 = %f\n", sample);
+                            sum += sample * sample;
+                        }
+                    }
+                } else {
+                    for(int i = 0; i < frame->nb_samples; i++) {
+                        for(int j = 0; j < frame->channels; j++) {
+                            double sample = getSample(audio_dec_ctx, frame->data[j], i);
+                            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Wav u8 = %f\n", sample);
+                            sum += sample * sample;
+                        }
+                    }
+                }
+            }*/
+
 
             fprintf(audio_dst_file, "%d\n", ((int)(sqrt(sum / frame->nb_samples) * 100)));
-//            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "%d\n", ((int)(sqrt(sum / frame->nb_samples) * 100)));
+//            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "PLANAR = %d || S16 = %d\n", *is_planar, *is_pcm_s16);
 
         }
 
@@ -136,9 +215,12 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, int* is_plana
     return 0;
 }
 
-static int open_codec_context(int *stream_idx,
-                              AVCodecContext **dec_ctx, AVFormatContext *fmt_ctx, enum AVMediaType type)
-{
+static int open_codec_context(
+        int *stream_idx,
+        AVCodecContext **dec_ctx,
+        AVFormatContext *fmt_ctx,
+        enum AVMediaType type
+) {
     int ret, stream_index;
     AVStream *st;
     const AVCodec *dec = NULL;
@@ -214,6 +296,52 @@ static int get_format_from_sample_fmt(const char **fmt,
     return -1;
 }
 
+static int wav2mp3(const char* input, const char* output) {
+    int read, write;
+
+    // Open input wav
+    FILE *pcm = fopen(input, "rb");
+
+    // Skip wav header
+    fseek(pcm, 4 * 1024, SEEK_CUR);
+
+    // Open output temp mp3 file
+    FILE *mp3 = fopen(output, "wb");
+
+    const int PCM_SIZE = 8192 * 3;
+    const int MP3_SIZE = 8192 * 3;
+
+    short int pcm_buffer[PCM_SIZE * 2];
+    unsigned char mp3_buffer[MP3_SIZE];
+
+    // Prepare lame
+    lame_t lame = lame_init();
+    lame_set_in_samplerate(lame, 44100);
+    lame_set_VBR(lame, vbr_default);
+    lame_init_params(lame);
+
+    int totalRead = 0;
+
+    // Convert wav to mp3
+    do {
+        read = fread(pcm_buffer, 2 * sizeof(short int), PCM_SIZE, pcm);
+        totalRead += read * 4;
+
+        if (read == 0) write = lame_encode_flush(lame, mp3_buffer, MP3_SIZE);
+        else write = lame_encode_buffer_interleaved(lame, pcm_buffer, read, mp3_buffer, MP3_SIZE);
+
+        fwrite(mp3_buffer, write, 1, mp3);
+    } while (read != 0);
+
+    // clean up lame
+    lame_close(lame);
+    fclose(mp3);
+    fclose(pcm);
+
+    return 0;
+}
+
+
 extern "C" JNIEXPORT jint JNICALL
 
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
@@ -224,16 +352,24 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         jstring audio_cache
 ) {
 
+//    /storage/emulated/0/Music/ncs_hr.mp3
+//    /storage/emulated/0/Music/dwv.mp4
+//    /storage/emulated/0/Music/kygo_s16.wav
+//    /storage/emulated/0/Music/kygo_u8.wav
+//    /storage/emulated/0/Music/igor.wav
+//    /storage/emulated/0/Music/kygo.mp3
+//    const char* temp_txt = env->GetStringUTFChars(txt_cache, 0);
+//    wav2mp3("/storage/emulated/0/Music/kygo_s16.wav", "/storage/emulated/0/Music/converted.mp3");
+//    wav2mp3("/storage/emulated/0/Music/igor.wav", temp_txt);
+
     int ret = 0;
     int is_planar = 0;
-    bool converted = false;
-
-    restart:
+    int is_pcm_s16 = 0;
 
     const char* temp_txt = env->GetStringUTFChars(txt_cache, 0);
     const char* temp_audio = env->GetStringUTFChars(audio_cache, 0);
     // Use converted file instead of input (only when converted flag - true).
-    const char* input_audio = converted ? temp_audio : env->GetStringUTFChars(audio_path, 0);
+    const char* input_audio = env->GetStringUTFChars(audio_path, 0);
 
 
     // open input file, and allocate format context
@@ -253,14 +389,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         audio_dst_file = fopen(temp_txt, "a+");
         is_planar = av_sample_fmt_is_planar(audio_dec_ctx->sample_fmt);
 
-        // If file is wav (planar) and codec is not pcm_u8
-        if(!is_planar && strcmp(audio_dec_ctx->codec->name, "pcm_u8") != 0) {
-            wav2mp3(input_audio, temp_audio);
-            converted = true;
-            goto end;
-        } else {
-            converted = false;
-        }
+        is_pcm_s16 = strcmp(audio_dec_ctx->codec->name, "pcm_u8") != 0;
     }
 
     // dump input information to stderr
@@ -290,7 +419,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
-            ret = decode_packet(audio_dec_ctx, pkt, &is_planar);
+            ret = decode_packet(audio_dec_ctx, pkt, &is_planar, &is_pcm_s16);
         }
 
         av_packet_unref(pkt);
@@ -300,7 +429,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // flush the decoders
     if (audio_dec_ctx)
-        decode_packet(audio_dec_ctx, NULL, &is_planar);
+        decode_packet(audio_dec_ctx, NULL, &is_planar, &is_pcm_s16);
 
     __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Success!\n");
 
@@ -334,10 +463,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     env->ReleaseStringUTFChars(txt_cache, temp_txt);
     env->ReleaseStringUTFChars(audio_cache, temp_audio);
 
-    if(converted)
-        goto restart;
-
     return ret < 0;
+//    env->ReleaseStringUTFChars(txt_cache, temp_txt);
+//    return 0;
 }
 
 /*extern "C" {
