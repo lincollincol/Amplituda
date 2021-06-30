@@ -30,8 +30,16 @@ public final class Amplituda {
 
     private String amplitudes;
 
+    private RawExtractor rawExtractor;
+
     public Amplituda(Context context) {
         FileManager.init(context);
+        rawExtractor = new RawExtractor(context);
+    }
+
+    public Amplituda setErrorListener() {
+        // TODO: 06.06.21 error listener
+        return this;
     }
 
     /**
@@ -50,6 +58,7 @@ public final class Amplituda {
                     FileManager.provideTempFile(TXT_TEMP),
                     FileManager.provideTempFile(AUDIO_TEMP)
             );
+
             if(code != 0) {
                 Log.e(APP_TAG, "Something went wrong! Check error log with \"Amplituda\" tag!");
             }
@@ -59,24 +68,26 @@ public final class Amplituda {
         return this;
     }
 
-    public Amplituda setErrorListener() {
-        // TODO: 06.06.21 error listener
-        return this;
-    }
-
-    public synchronized void releaseCurrent() {
-        if(amplitudes != null) {
-            amplitudes = null;
-        }
-        MemoryState.showState();
-    }
-
     /**
      * Calculate amplitudes from file
      * @param audioPath - path to source file
      */
     public Amplituda fromPath(final String audioPath) {
         fromFile(new File(audioPath));
+        return this;
+    }
+
+    /**
+     * Calculate amplitudes from file
+     * @param rawId - path to source file
+     */
+    public Amplituda fromFile(int rawId) {
+        File audio = rawExtractor.getAudioFromRawResources(rawId);
+        if(audio == null) {
+            // TODO: 30.06.21 throw exception with listener: invalid res file
+            return this;
+        }
+        fromFile(audio);
         return this;
     }
 
@@ -196,7 +207,15 @@ public final class Amplituda {
      * @param type - output time format: SECONDS or MILLIS
      */
     public long getDuration(final int type) {
-        long duration = Long.parseLong(getDurationStr());
+        String inputAudioFile = FileManager.retrieveRuntimePath();
+
+        if(inputAudioFile == null) {
+            Log.e(APP_TAG, "Input file not found! Please call fromFile() or fromPath() at first!");
+            return 0;
+        }
+
+        long duration = Long.parseLong(getDurationStr(inputAudioFile));
+
         if (type == SECONDS) {
             return duration / 1000;
         }
@@ -218,14 +237,9 @@ public final class Amplituda {
      * Extracts duration from input audio file
      * @return duration in String format
      */
-    private String getDurationStr() {
-        String inputAudioFile = FileManager.retrieveRuntimePath();
-        if(inputAudioFile == null) {
-            Log.e(APP_TAG, "Input file not found! Please call fromFile() or fromPath() at first!");
-            return "0";
-        }
+    private String getDurationStr(String path) throws IllegalArgumentException {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-        mediaMetadataRetriever.setDataSource(inputAudioFile);
+        mediaMetadataRetriever.setDataSource(path);
         return mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
     }
 

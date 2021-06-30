@@ -31,12 +31,13 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation project(":app")
+//    implementation 'com.github.lincollincol:amplituda:db1d47aa3b'
 
     // ReactiveX
     def rx_version = "3.0.0"
     implementation "io.reactivex.rxjava3:rxandroid:$rx_version"
     implementation "io.reactivex.rxjava3:rxjava:$rx_version"
 
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
+//    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
 
 }

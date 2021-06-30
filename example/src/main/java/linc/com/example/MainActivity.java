@@ -2,6 +2,8 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import android.os.Bundle;
 
 import java.io.File;
@@ -10,7 +12,6 @@ import java.lang.reflect.Field;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import leakcanary.LeakCanary;
 import linc.com.amplituda.Amplituda;
 
 public class MainActivity extends AppCompatActivity {
@@ -22,19 +23,41 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(getApplicationContext());
 
+        amplituda.fromFile(R.raw.kygo_pcm)
+                .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, amps -> {
+                    try {
+                        FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
+                        fw.write(amps);
+                        fw.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                })
+                .amplitudesAsJson(System.out::println);
+
 //        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
-        Observable.create(emitter -> {
+        /*int resId = R.drawable.ic_launcher_background;
+        Uri file = new Uri.Builder()
+                .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+                .authority(getPackageName())
+                .path(""+resId)
+                .build();
+
+        System.out.println(file.getPath());*/
+
+        /*Observable.create(emitter -> {
             try {
                 for(int i = 0; i < 1; i++) {
                     long start = System.currentTimeMillis();
                     emitter.onNext("File #" + i);
-//                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
+                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/dwv.mp4")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_s16.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_u8.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/igor.wav")
-                    amplituda.fromPath("/storage/emulated/0/Music/Jain.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/Jain.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_pcm.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.mp3")
@@ -64,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
                 },
                 () -> {
                     System.out.println("COMPLETE");
-                });
+                });*/
 
 
 //        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3") // 137816
@@ -91,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .amplitudesPerSecond(5, list -> {
                     System.out.println("Amplitudes at second 5: " + Arrays.toString(list.toArray()));
-                })*/;
+                });*/
 
     }
 }
