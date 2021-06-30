@@ -1,14 +1,6 @@
 #include <jni.h>
 #include <android/log.h>
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-
-
-//#include "Converter.h"
-#include "lame/include/lame.h"
-
 extern "C" {
 #include "libavutil/timestamp.h"
 #include "libavutil/samplefmt.h"
@@ -25,52 +17,10 @@ static int audio_stream_idx = -1;
 static AVFrame *frame = NULL;
 static AVPacket *pkt = NULL;
 
-/*double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
-    double value = 0.0;
-
-    switch (codecCtx->sample_fmt) {
-        case AV_SAMPLE_FMT_U8:
-        case AV_SAMPLE_FMT_U8P:
-            value = buffer[sampleIndex];
-            break;
-            break;
-        case AV_SAMPLE_FMT_S16:
-        case AV_SAMPLE_FMT_S16P:
-            value += ((int16_t *) buffer)[sampleIndex];
-            break;
-        case AV_SAMPLE_FMT_S32:
-        case AV_SAMPLE_FMT_S32P:
-            value += ((int32_t *) buffer)[sampleIndex];
-            break;
-        case AV_SAMPLE_FMT_FLT:
-        case AV_SAMPLE_FMT_FLTP:
-            value += ((float *) buffer)[sampleIndex];
-            break;
-        case AV_SAMPLE_FMT_DBL:
-        case AV_SAMPLE_FMT_DBLP:
-            value += ((double *) buffer)[sampleIndex];
-            break;
-        default: return 0;
-    }
-
-    if (codecCtx->sample_fmt == AV_SAMPLE_FMT_DBL || codecCtx->sample_fmt == AV_SAMPLE_FMT_DBLP || codecCtx->sample_fmt == AV_SAMPLE_FMT_FLT || codecCtx->sample_fmt == AV_SAMPLE_FMT_FLTP) {
-        if (value < -1.0) {
-            value = -1.0;
-        } else if (value > 1.0) {
-            value = 1.0;
-        }
-    }
-
-    return value;
-}*/
-
 double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
     int64_t val = 0;
-//    float ret = 0;
     double ret = 0;
     int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
-
-//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Sample size: %d fmt = %d", sampleSize, codecCtx->sample_fmt);
 
     switch(sampleSize) {
         case 1:
@@ -147,18 +97,20 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, const int* is
         if(dec->codec->type == AVMEDIA_TYPE_AUDIO) {
             double sum = 0;
 
-            if(*is_pcm_s16) { // mp3
-                // for (c = 0; c < data->channels; ++c)
-                for(int i = 0; i < frame->nb_samples; i++) {
-                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
-                    sum += sample * sample;
-                }
-            } else {
-                for(int i = 0; i < frame->nb_samples; i++) {
-                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
-                    sum += sample * sample;
-                }
+
+            for(int i = 0; i < frame->nb_samples; i++) {
+                double sample = getSample(audio_dec_ctx, frame->data[0], i);
+                sum += sample * sample;
             }
+//            if(*is_pcm_s16) { // mp3
+//                 for (c = 0; c < data->channels; ++c)
+//                for(int i = 0; i < frame->nb_samples; i++) {
+//                    double sample = getSample(audio_dec_ctx, frame->data[0], i);
+//                    sum += sample * sample;
+//                }
+//            } else {
+//
+//            }
 
             /*if(*is_planar) { // is not wav
                 // for (c = 0; c < data->channels; ++c)
@@ -295,52 +247,6 @@ static int get_format_from_sample_fmt(const char **fmt,
             av_get_sample_fmt_name(sample_fmt));
     return -1;
 }
-
-static int wav2mp3(const char* input, const char* output) {
-    int read, write;
-
-    // Open input wav
-    FILE *pcm = fopen(input, "rb");
-
-    // Skip wav header
-    fseek(pcm, 4 * 1024, SEEK_CUR);
-
-    // Open output temp mp3 file
-    FILE *mp3 = fopen(output, "wb");
-
-    const int PCM_SIZE = 8192 * 3;
-    const int MP3_SIZE = 8192 * 3;
-
-    short int pcm_buffer[PCM_SIZE * 2];
-    unsigned char mp3_buffer[MP3_SIZE];
-
-    // Prepare lame
-    lame_t lame = lame_init();
-    lame_set_in_samplerate(lame, 44100);
-    lame_set_VBR(lame, vbr_default);
-    lame_init_params(lame);
-
-    int totalRead = 0;
-
-    // Convert wav to mp3
-    do {
-        read = fread(pcm_buffer, 2 * sizeof(short int), PCM_SIZE, pcm);
-        totalRead += read * 4;
-
-        if (read == 0) write = lame_encode_flush(lame, mp3_buffer, MP3_SIZE);
-        else write = lame_encode_buffer_interleaved(lame, pcm_buffer, read, mp3_buffer, MP3_SIZE);
-
-        fwrite(mp3_buffer, write, 1, mp3);
-    } while (read != 0);
-
-    // clean up lame
-    lame_close(lame);
-    fclose(mp3);
-    fclose(pcm);
-
-    return 0;
-}
-
 
 extern "C" JNIEXPORT jint JNICALL
 

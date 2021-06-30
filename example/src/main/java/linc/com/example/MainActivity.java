@@ -33,8 +33,11 @@ public class MainActivity extends AppCompatActivity {
 //                    amplituda.fromPath("/storage/emulated/0/Music/dwv.mp4")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_s16.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_u8.wav")
-                    amplituda.fromPath("/storage/emulated/0/Music/igor.wav")
-//                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/igor.wav")
+                    amplituda.fromPath("/storage/emulated/0/Music/Jain.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/kygo_pcm.wav")
+//                    amplituda.fromPath("/storage/emulated/0/Music/clap.wav")
+//                    amplituda.fromPath("/storage/emulated/0/Music/clap.mp3")
                             .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext)
 //                        .amplitudesAsJson(json -> {
 //                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000f) + " = " + json);
