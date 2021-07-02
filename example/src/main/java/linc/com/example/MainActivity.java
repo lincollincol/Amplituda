@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(getApplicationContext());
 
-        amplituda.fromFile(R.raw.kygo_pcm)
+        /*amplituda.fromFile(R.raw.kygo_pcm)
                 .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, amps -> {
                     try {
                         FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
@@ -33,20 +33,12 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 })
-                .amplitudesAsJson(System.out::println);
+                .amplitudesAsJson(System.out::println);*/
 
 //        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
-        /*int resId = R.drawable.ic_launcher_background;
-        Uri file = new Uri.Builder()
-                .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
-                .authority(getPackageName())
-                .path(""+resId)
-                .build();
 
-        System.out.println(file.getPath());*/
-
-        /*Observable.create(emitter -> {
+        Observable.create(emitter -> {
             try {
                 for(int i = 0; i < 1; i++) {
                     long start = System.currentTimeMillis();
@@ -61,11 +53,10 @@ public class MainActivity extends AppCompatActivity {
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_pcm.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.mp3")
-                            .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext)
+                            .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext);
 //                        .amplitudesAsJson(json -> {
 //                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000f) + " = " + json);
 //                        })
-                    .releaseCurrent();
                 }
                 emitter.onComplete();
             } catch (Exception e) {
@@ -78,8 +69,9 @@ public class MainActivity extends AppCompatActivity {
                     FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
                     fw.write(time.toString());
                     fw.close();
-                    System.out.println("NEXT");
-                    System.out.println(time);
+                    // 2147483647
+                    // ----397733
+                    System.out.println("RESULT SIZE = " + time.toString().length());
                 },
                 error -> {
                     System.out.println("ERROR");
@@ -87,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 },
                 () -> {
                     System.out.println("COMPLETE");
-                });*/
+                });
 
 
 //        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3") // 137816
