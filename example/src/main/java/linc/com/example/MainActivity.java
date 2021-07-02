@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import linc.com.amplituda.Amplituda;
+import linc.com.amplituda.AmplitudaResultJNI;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,23 +41,23 @@ public class MainActivity extends AppCompatActivity {
 
         Observable.create(emitter -> {
             try {
-                for(int i = 0; i < 1; i++) {
+                for(int i = 0; i < 45; i++) {
                     long start = System.currentTimeMillis();
-                    emitter.onNext("File #" + i);
-                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
+//                    emitter.onNext("File #" + i);
+//                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/dwv.mp4")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_s16.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_u8.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/igor.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/Jain.mp3")
-//                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
+                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_pcm.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.mp3")
-                            .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext);
-//                        .amplitudesAsJson(json -> {
-//                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000f) + " = " + json);
-//                        })
+//                            .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, emitter::onNext);
+                        .amplitudesAsJson(json -> {
+                            emitter.onNext("Time = " + ((System.currentTimeMillis() - start) / 1000f) + " = " + json);
+                        });
                 }
                 emitter.onComplete();
             } catch (Exception e) {
@@ -66,11 +67,12 @@ public class MainActivity extends AppCompatActivity {
         .subscribe(
                 time -> {
 
-                    FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
-                    fw.write(time.toString());
-                    fw.close();
+//                    FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
+//                    fw.write(time.toString());
+//                    fw.close();
                     // 2147483647
                     // ----397733
+                    System.out.println(time.toString());
                     System.out.println("RESULT SIZE = " + time.toString().length());
                 },
                 error -> {
@@ -80,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
                 () -> {
                     System.out.println("COMPLETE");
                 });
+
 
 
 //        amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3") // 137816

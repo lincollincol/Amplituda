@@ -53,16 +53,22 @@ public final class Amplituda {
             FileManager.clearCache();
             FileManager.saveRuntimePath(audio.getPath());
 
-            int code = amplitudesFromAudioJNI(
+            /*int code = amplitudesFromAudioJNI(
+                    audio.getPath(),
+                    FileManager.provideTempFile(TXT_TEMP),
+                    FileManager.provideTempFile(AUDIO_TEMP)
+            );*/
+            AmplitudaResultJNI result = amplitudesFromAudioJNI(
                     audio.getPath(),
                     FileManager.provideTempFile(TXT_TEMP),
                     FileManager.provideTempFile(AUDIO_TEMP)
             );
 
-            if(code != 0) {
+            if(result.code != 0) {
                 Log.e(APP_TAG, "Something went wrong! Check error log with \"Amplituda\" tag!");
             }
-            this.amplitudes = FileManager.readFile(FileManager.provideTempFile(TXT_TEMP));
+//            this.amplitudes = FileManager.readFile(FileManager.provideTempFile(TXT_TEMP));
+            this.amplitudes = result.amplitudes;
             FileManager.clearCache();
         }
         return this;
@@ -265,6 +271,7 @@ public final class Amplituda {
         System.loadLibrary("native-lib");
     }
 
-    native int amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
+//    native int amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
+    native AmplitudaResultJNI amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
 
 }

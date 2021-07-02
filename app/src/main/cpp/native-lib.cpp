@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <android/log.h>
+#include <string>
 
 extern "C" {
 #include "libavutil/timestamp.h"
@@ -10,8 +11,7 @@ extern "C" {
 static AVFormatContext *fmt_ctx = NULL;
 static AVCodecContext *audio_dec_ctx;
 static AVStream *audio_stream = NULL;
-static const char *src_filename = NULL;
-static FILE *audio_dst_file = NULL;
+//static FILE *audio_dst_file = NULL;
 
 static int audio_stream_idx = -1;
 static AVFrame *frame = NULL;
@@ -66,7 +66,7 @@ double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleInde
     return ret;
 }
 
-static int decode_packet(AVCodecContext *dec, const AVPacket *pkt)
+static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* result)
 {
     int ret = 0;
 
@@ -102,7 +102,10 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt)
                 sum += sample * sample;
             }
 
-            fprintf(audio_dst_file, "%d\n", ((int)(sqrt(sum / frame->nb_samples) * 100)));
+            (*result) += std::to_string(((int)(sqrt(sum / frame->nb_samples) * 100)));
+            (*result) += "\n";
+
+//            fprintf(audio_dst_file, "%d\n", ((int)(sqrt(sum / frame->nb_samples) * 100)));
 //            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "PLANAR = %d || S16 = %d\n", *is_planar, *is_pcm_s16);
 
         }
@@ -113,6 +116,7 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt)
             return ret;
         }
     }
+
 
 //    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "last if for Total frames = %d\n", frames);
 
@@ -132,7 +136,7 @@ static int open_codec_context(
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find %s stream in input file '%s'\n", av_get_media_type_string(type), src_filename);
+        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find %s stream in input file '%s'\n", av_get_media_type_string(type));
         return ret;
     } else {
         stream_index = ret;
@@ -200,7 +204,7 @@ static int get_format_from_sample_fmt(const char **fmt,
     return -1;
 }
 
-extern "C" JNIEXPORT jint JNICALL
+extern "C" JNIEXPORT jobject JNICALL
 
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
@@ -209,6 +213,36 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         jstring txt_cache,
         jstring audio_cache
 ) {
+
+    jclass amplitudaResultClass = (env)->FindClass("linc/com/amplituda/AmplitudaResultJNI");
+    jmethodID constructor = (env)->GetMethodID(amplitudaResultClass, "<init>", "()V");
+    jfieldID amplitudes = (env)->GetFieldID(amplitudaResultClass, "amplitudes", "Ljava/lang/String;");
+    jfieldID code = (env)->GetFieldID(amplitudaResultClass, "code", "I");
+    jobject amplitudaResultReturnObject = (env)->NewObject(amplitudaResultClass, constructor);
+
+    /*
+      / / Get the mx2Data class in Java
+    jclass objectClass = (env)->FindClass("com/example/jnitest2/mx2Data");
+
+    // Get the constructor id of this class. // Get the id of the default constructor of the class. Write it like this.
+    jmethodID consID = (env)->GetMethodID(objectClass, "<init>", "()V");
+
+    / / Get the definition of each variable in the class
+    //name
+    jfieldID str = (env)->GetFieldID(objectClass, "name", "Ljava/lang/String;");
+
+    //index
+    jfieldID idex = (env)->GetFieldID(objectClass, "index", "I");
+
+    / / Create a jobject object.
+    jobject myReturn = (env)->NewObject(objectClass, consID);
+
+    / / Assign a value to each instance of the variable
+    (env)->SetObjectField(myReturn, str, (env)->NewStringUTF("mei xiang 2"));
+    (env)->SetIntField(myReturn, idex, 10);
+     */
+
+    std::string amplitudes_data = "";
 
     int ret = 0;
 
@@ -220,18 +254,20 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // open input file, and allocate format context
     if (avformat_open_input(&fmt_ctx, input_audio, NULL, NULL) < 0) {
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open source file %s\n", input_audio);
-        return -1;
+//        return -1;
+        return amplitudaResultReturnObject;
     }
 
     // retrieve stream information
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
         __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find stream information\n");
-        return -1;
+//        return -1;
+        return amplitudaResultReturnObject;
     }
 
     if (open_codec_context(&audio_stream_idx, &audio_dec_ctx, fmt_ctx, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = fmt_ctx->streams[audio_stream_idx];
-        audio_dst_file = fopen(temp_txt, "a");
+//        audio_dst_file = fopen(temp_txt, "a");
     }
 
     // dump input information to stderr
@@ -257,11 +293,14 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         goto end;
     }
 
+
+    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Pocket size: %d\n", fmt_ctx->packet_size);
+
     // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
-            ret = decode_packet(audio_dec_ctx, pkt);
+            ret = decode_packet(audio_dec_ctx, pkt, &amplitudes_data);
         }
 
         av_packet_unref(pkt);
@@ -271,7 +310,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // flush the decoders
     if (audio_dec_ctx)
-        decode_packet(audio_dec_ctx, NULL);
+        decode_packet(audio_dec_ctx, NULL, &amplitudes_data);
 
     __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Success!\n");
 
@@ -296,8 +335,8 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     end:
     avcodec_free_context(&audio_dec_ctx);
     avformat_close_input(&fmt_ctx);
-    if (audio_dst_file)
-        fclose(audio_dst_file);
+//    if (audio_dst_file)
+//        fclose(audio_dst_file);
     av_packet_free(&pkt);
     av_frame_free(&frame);
 
@@ -305,5 +344,11 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     env->ReleaseStringUTFChars(txt_cache, temp_txt);
     env->ReleaseStringUTFChars(audio_cache, temp_audio);
 
-    return ret < 0;
+//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Result data: %s\n", amplitudes.c_str());
+
+    (env)->SetObjectField(amplitudaResultReturnObject, amplitudes, (env)->NewStringUTF(amplitudes_data.c_str()));
+    (env)->SetIntField(amplitudaResultReturnObject, code, ret);
+
+//    return ret < 0;
+    return amplitudaResultReturnObject;
 }
