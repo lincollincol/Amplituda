@@ -2,6 +2,7 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.media.MediaMetadataRetriever;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,6 +40,23 @@ final class FileManager {
 
     synchronized String getStashedPath() {
         return stashedPath;
+    }
+
+    synchronized boolean isAudioFile(String path) {
+        try {
+            getAudioDuration(path);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    synchronized long getAudioDuration(String path) {
+        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+        mediaMetadataRetriever.setDataSource(path);
+        return Long.parseLong(mediaMetadataRetriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_DURATION
+        ));
     }
 
     synchronized File getRawFile(int resource, Resources resources) {

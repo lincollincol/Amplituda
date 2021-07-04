@@ -1,27 +1,25 @@
 package linc.com.amplituda;
 
 import android.content.Context;
-import android.media.MediaMetadataRetriever;
 import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.UnknownFormatFlagsException;
 
 import linc.com.amplituda.exceptions.*;
 import linc.com.amplituda.exceptions.io.*;
 import linc.com.amplituda.exceptions.allocation.*;
+import linc.com.amplituda.exceptions.processing.*;
 
 import static linc.com.amplituda.ErrorCode.*;
 
 public final class Amplituda {
-
-    private static final String LIB_TAG = "AMPLITUDA";
 
     public static final int SINGLE_LINE_SEQUENCE_FORMAT = 0;
     public static final int NEW_LINE_SEQUENCE_FORMAT = 1;
@@ -29,8 +27,10 @@ public final class Amplituda {
     public static final int SECONDS = 2;
     public static final int MILLIS = 3;
 
-    private String amplitudes;
     private ErrorListener errorListener;
+
+    private String amplitudes;
+    private final List<Integer> errors = new LinkedList<>();
 
     private final FileManager fileManager;
     private final RawExtractor rawExtractor;
@@ -40,8 +40,15 @@ public final class Amplituda {
         rawExtractor = new RawExtractor(context, fileManager);
     }
 
-    public Amplituda setErrorListener(ErrorListener errorListener) {
+    public Amplituda setErrorListener(final ErrorListener errorListener) {
         this.errorListener = errorListener;
+        handleAmplitudaErrors();
+        return this;
+    }
+
+    public Amplituda setLogConfig(final int priority, final boolean enable) {
+        AmplitudaLogger.priority(priority);
+        AmplitudaLogger.enable(enable);
         return this;
     }
 
@@ -51,12 +58,31 @@ public final class Amplituda {
      */
     public synchronized Amplituda fromFile(final File audio)  {
         if(!audio.exists()) {
+            amplitudes = null;
             throwException(new FileNotFoundException());
         } else {
-            fileManager.stashPath(audio.getPath());
+            if(!fileManager.isAudioFile(audio.getPath())) {
+                amplitudes = null;
+                throwException(new FileOpenException());
+                return this;
+            }
+            // Save time before processing
+            long start = System.currentTimeMillis();
+
+            // Process input audio
             AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath());
-            handleErrors(result.getErrors());
+
+            // Log processing time
+            AmplitudaLogger.log(String.format(
+                    Locale.getDefault(),
+                    "Processing time: %.04f seconds",
+                    ((System.currentTimeMillis() - start) / 1000f))
+            );
+
+            // Copy result data
             amplitudes = result.getAmplitudes();
+            errors.addAll(result.getErrors());
+            fileManager.stashPath(audio.getPath());
         }
         return this;
     }
@@ -65,7 +91,7 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param audioPath - path to source file
      */
-    public Amplituda fromPath(final String audioPath) {
+    public Amplituda fromFile(final String audioPath) {
         fromFile(new File(audioPath));
         return this;
     }
@@ -91,15 +117,17 @@ public final class Amplituda {
     public Amplituda amplitudesAsList(final ListCallback listCallback) {
         if(amplitudes == null || amplitudes.isEmpty())
             return this;
+
         String[] log = amplitudes.split("\n");
         List<Integer> amplitudes = new ArrayList<>();
+
         for (String amplitude : log) {
             if(amplitude.isEmpty()) {
                 break;
             }
             amplitudes.add(Integer.valueOf(amplitude));
         }
-        listCallback.onEvent(amplitudes);
+        listCallback.call(amplitudes);
         return this;
     }
 
@@ -108,9 +136,10 @@ public final class Amplituda {
      * @param jsonCallback - result callback
      */
     public Amplituda amplitudesAsJson(final StringCallback jsonCallback) {
-        if(amplitudes == null)
+        if(amplitudes == null || amplitudes.isEmpty())
             return this;
-        jsonCallback.onEvent("[" + amplitudesToSingleLineSequence(amplitudes, ", ") + "]");
+
+        jsonCallback.call("[" + amplitudesToSingleLineSequence(amplitudes, ", ") + "]");
         return this;
     }
 
@@ -120,8 +149,9 @@ public final class Amplituda {
      * @param stringCallback - result callback
      */
     public Amplituda amplitudesAsSequence(final int format, final StringCallback stringCallback) {
-        if(amplitudes == null)
+        if(amplitudes == null || amplitudes.isEmpty())
             return this;
+
         amplitudesAsSequence(format, " ", stringCallback);
         return this;
     }
@@ -137,14 +167,15 @@ public final class Amplituda {
             final String singleLineDelimiter,
             final StringCallback stringCallback
     ) {
-        if(amplitudes == null)
+        if(amplitudes == null || amplitudes.isEmpty())
             return this;
+
         switch (format) {
-            case SINGLE_LINE_SEQUENCE_FORMAT: stringCallback.onEvent(amplitudesToSingleLineSequence(
+            case SINGLE_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudesToSingleLineSequence(
                     amplitudes,
                     singleLineDelimiter
             )); break;
-            case NEW_LINE_SEQUENCE_FORMAT: stringCallback.onEvent(amplitudes); break;
+            case NEW_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudes); break;
             default: throwException(new InvalidFormatFlagException()); break;
         }
         return this;
@@ -158,9 +189,9 @@ public final class Amplituda {
     public void amplitudesPerSecond(final int second, final ListCallback listCallback) {
         amplitudesAsList(new ListCallback() {
             @Override
-            public void onEvent(List<Integer> list) {
+            public void call(List<Integer> data) {
                 int duration = (int) getDuration(SECONDS);
-                int aps = list.size() / duration; // amplitudes per second
+                int aps = data.size() / duration; // amplitudes per second
                 // Use second as a map key
                 int currentSecond = 0;
                 // Map with format = Map<Second, Amplitudes>
@@ -168,7 +199,7 @@ public final class Amplituda {
                 // Temporary amplitudes list
                 List<Integer> amplitudesPerSecond = new ArrayList<>();
 
-                for(int frameIndex = 0; frameIndex < list.size(); frameIndex++) {
+                for(int frameIndex = 0; frameIndex < data.size(); frameIndex++) {
                     if(frameIndex % aps == 0) { // Save all amplitudes when current frame index equals to aps
                         // Save amplitudes to map
                         amplitudes.put(currentSecond, new ArrayList<>(amplitudesPerSecond));
@@ -178,14 +209,14 @@ public final class Amplituda {
                         currentSecond++;
                     } else {
                         // Add amplitude to temporary list
-                        amplitudesPerSecond.add(list.get(frameIndex));
+                        amplitudesPerSecond.add(data.get(frameIndex));
                     }
                 }
 
                 if(second > duration) {
                       throwException(new SecondOutOfBoundsException(second, duration));
                 } else {
-                    listCallback.onEvent(amplitudes.get(second));
+                    listCallback.call(amplitudes.get(second));
                 }
             }
         });
@@ -208,7 +239,7 @@ public final class Amplituda {
             return 0;
         }
 
-        long duration = Long.parseLong(getDurationStr(inputAudioFile));
+        long duration = fileManager.getAudioDuration(inputAudioFile);
 
         if (format == SECONDS) {
             return duration / 1000;
@@ -228,31 +259,23 @@ public final class Amplituda {
     }
 
     /**
-     * Extracts duration from input audio file
-     * @return duration in String format
-     */
-    private String getDurationStr(final String path) throws IllegalArgumentException {
-        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-        mediaMetadataRetriever.setDataSource(path);
-        return mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-    }
-
-    /**
      * Emit new exception event for listener
      * @param exception - cause
      */
     private void throwException(final AmplitudaException exception) {
         if(errorListener == null) {
+            errors.add(exception.getCode());
             return;
         }
-        errorListener.onEvent(exception);
+        errorListener.call(exception);
     }
 
     /**
-     * Handle and emit exc
-     * @param exception - cause
+     * Handle errors from ndk side
      */
-    private void handleErrors(final Collection<Integer> errors) {
+    private synchronized void handleAmplitudaErrors() {
+        if(errors.isEmpty())
+            return;
         for(final int code : errors) {
             switch (code) {
                 case ALLOC_FRAME_ERR:        throwException(new FrameAllocationException());           break;
@@ -270,12 +293,13 @@ public final class Amplituda {
                 default: break;
             }
         }
+        errors.clear();
     }
 
     /**
      * Base Callback interface
      */
-    private interface AmplitudaCallback<T> { void onEvent(T amplitudesResult); }
+    private interface AmplitudaCallback<T> { void call(T data); }
 
     /**
      * Callback interface for list output
