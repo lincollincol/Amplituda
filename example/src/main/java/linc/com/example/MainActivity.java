@@ -103,10 +103,10 @@ public class MainActivity extends AppCompatActivity {
         };
 
         Observable.create((ObservableOnSubscribe<String>) emitter -> {
-            for(int i = 0; i < 10; i++) {
+            for(int i = 0; i < 5; i++) {
                 System.out.println("--------------------------- Process index: " + i + " ---------------------------");
 //                System.out.println("File: " + files[i]);
-                amplituda.fromFile("/storage/emulated/0/Music/ncs_hr.mp3")
+                amplituda.fromFile("/storage/emulated/0/Music/kygo.mp3")
                         .setLogConfig(Log.ERROR, true)
                         .amplitudesAsJson(amps -> {
 //                            System.out.println("Success data: " + amps);
