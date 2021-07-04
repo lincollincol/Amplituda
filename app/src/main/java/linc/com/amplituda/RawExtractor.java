@@ -9,14 +9,16 @@ import java.io.File;
 final class RawExtractor {
 
     private final Resources resources;
+    private final FileManager fileManager;
 
-    RawExtractor(Context context) {
-        resources = context.getResources();
+    RawExtractor(Context context, FileManager fileManager) {
+        this.resources = context.getResources();
+        this.fileManager = fileManager;
     }
 
     public File getAudioFromRawResources(int rawId) {
         // Copy resId file from res/raw to local storage without extension
-        File rawAudio = FileManager.getRawFile(rawId, resources);
+        File rawAudio = fileManager.getRawFile(rawId, resources);
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
 
         // Choose correct extension

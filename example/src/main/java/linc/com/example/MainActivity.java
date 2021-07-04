@@ -8,12 +8,13 @@ import android.os.Bundle;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOError;
+import java.io.IOException;
 import java.lang.reflect.Field;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import linc.com.amplituda.Amplituda;
-import linc.com.amplituda.AmplitudaResultJNI;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,19 +39,19 @@ public class MainActivity extends AppCompatActivity {
 
 //        amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 
-
         Observable.create(emitter -> {
             try {
-                for(int i = 0; i < 45; i++) {
+                for(int i = 0; i < 1; i++) {
                     long start = System.currentTimeMillis();
 //                    emitter.onNext("File #" + i);
-//                    amplituda.fromPath("/storage/emulated/0/Music/ncs_hr.mp3")
+                    amplituda.fromPath("/storage/emulated/0/Music/first_wave.png")
+//                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/dwv.mp4")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_s16.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_u8.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/igor.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/Jain.mp3")
-                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
+//                    amplituda.fromPath("/storage/emulated/0/Music/kygo.mp3")
 //                    amplituda.fromPath("/storage/emulated/0/Music/kygo_pcm.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.wav")
 //                    amplituda.fromPath("/storage/emulated/0/Music/clap.mp3")

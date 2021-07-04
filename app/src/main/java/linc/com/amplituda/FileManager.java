@@ -14,62 +14,34 @@ import java.io.InputStream;
 
 final class FileManager {
 
-    private static String cache;
-    private static String runtime;
-    static final String TXT_TEMP = "amplituda_tmp_text.txt";
+    private String stashedPath;
+    private final String cache;
     static final String RAW_TEMP = "amplituda_tmp_raw";
-    static final String AUDIO_TEMP = "amplituda_tmp_audio.mp3";
 
-    synchronized static void init(Context context) {
-        if(cache == null) {
-            cache = context.getCacheDir().getPath() + File.separator;
-        }
+    FileManager(Context context) {
+        cache = context.getCacheDir().getPath() + File.separator;
     }
 
-    synchronized static String provideTempFile(final String temp) {
-        return cache + temp;
-    }
-
-    synchronized static void clearCache() {
-        deleteFile(cache + TXT_TEMP);
+    synchronized void clearCache() {
         deleteFile(cache + RAW_TEMP);
-        deleteFile(cache + AUDIO_TEMP);
     }
 
-    synchronized static String readFile(final String path) {
-        StringBuilder output = new StringBuilder();
-        try {
-            FileReader reader = new FileReader(path);
-            BufferedReader buffer = new BufferedReader(reader);
-            String line;
-            while( (line = buffer.readLine()) != null){
-                output.append(line).append("\n");
-            }
-            reader.close();
-            buffer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return output.toString();
-    }
-
-    synchronized static void deleteFile(final String path) {
+    synchronized void deleteFile(final String path) {
         File file = new File(path);
         if(file.exists()) {
             file.delete();
         }
     }
 
-    synchronized static void saveRuntimePath(String path) {
-        runtime = path;
+    synchronized void stashPath(String path) {
+        stashedPath = path;
     }
 
-    synchronized static String retrieveRuntimePath() {
-        return runtime;
+    synchronized String getStashedPath() {
+        return stashedPath;
     }
 
-
-    synchronized static File getRawFile(int resource, Resources resources) {
+    synchronized File getRawFile(int resource, Resources resources) {
         InputStream inputStream = resources.openRawResource(resource);
         File temp = new File(cache, RAW_TEMP);
 

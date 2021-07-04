@@ -1,6 +1,7 @@
 #include <jni.h>
-#include <android/log.h>
+//#include <android/log.h>
 #include <string>
+#include "error_code.h"
 
 extern "C" {
 #include "libavutil/timestamp.h"
@@ -11,11 +12,15 @@ extern "C" {
 static AVFormatContext *fmt_ctx = NULL;
 static AVCodecContext *audio_dec_ctx;
 static AVStream *audio_stream = NULL;
-//static FILE *audio_dst_file = NULL;
 
 static int audio_stream_idx = -1;
 static AVFrame *frame = NULL;
 static AVPacket *pkt = NULL;
+
+void add_error(std::string* errors, const int code) {
+    *errors += std::to_string(code);
+    *errors += " ";
+}
 
 double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
     int64_t val = 0;
@@ -66,14 +71,14 @@ double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleInde
     return ret;
 }
 
-static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* result)
+static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* result, std::string* errors)
 {
     int ret = 0;
 
     // submit the packet to the decoder
     ret = avcodec_send_packet(dec, pkt);
     if (ret < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error submitting a packet for decoding (%s)\n", av_err2str(ret));
+        add_error(errors, PACKET_SUBMITTING_ERR);
         return ret;
     }
 
@@ -84,11 +89,9 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* 
             // those two return values are special and mean there is no output
             // frame available, but there were no errors during decoding
             if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)) {
-//                __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "1st if for Total frames = %d\n", frames);
                 return 0;
             }
-
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Error during decoding (%s)\n", av_err2str(ret));
+            add_error(errors, DECODING_ERR);
             return ret;
         }
 
@@ -104,21 +107,13 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* 
 
             (*result) += std::to_string(((int)(sqrt(sum / frame->nb_samples) * 100)));
             (*result) += "\n";
-
-//            fprintf(audio_dst_file, "%d\n", ((int)(sqrt(sum / frame->nb_samples) * 100)));
-//            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "PLANAR = %d || S16 = %d\n", *is_planar, *is_pcm_s16);
-
         }
 
         av_frame_unref(frame);
         if (ret < 0) {
-//            __android_log_print(ANDROID_LOG_ERROR, "2nd if for AMPLITUDA", "Total frames = %d\n", frames);
             return ret;
         }
     }
-
-
-//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "last if for Total frames = %d\n", frames);
 
     return 0;
 }
@@ -127,7 +122,8 @@ static int open_codec_context(
         int *stream_idx,
         AVCodecContext **dec_ctx,
         AVFormatContext *fmt_ctx,
-        enum AVMediaType type
+        enum AVMediaType type,
+        std::string* errors
 ) {
     int ret, stream_index;
     AVStream *st;
@@ -136,7 +132,7 @@ static int open_codec_context(
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find %s stream in input file '%s'\n", av_get_media_type_string(type));
+        add_error(errors, NOT_FOUND_STREAM);
         return ret;
     } else {
         stream_index = ret;
@@ -145,29 +141,26 @@ static int open_codec_context(
         /* find decoder for the stream */
         dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to find %s codec\n", av_get_media_type_string(type));
+            add_error(errors, NOT_FOUND_CODEC);
             return AVERROR(EINVAL);
         }
 
         /* Allocate a codec context for the decoder */
         *dec_ctx = avcodec_alloc_context3(dec);
         if (!*dec_ctx) {
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to allocate the %s codec context\n",
-                    av_get_media_type_string(type));
+            add_error(errors, ALLOC_CODEC_CTX_ERR);
             return AVERROR(ENOMEM);
         }
 
         /* Copy codec parameters from input stream to output codec context */
         if ((ret = avcodec_parameters_to_context(*dec_ctx, st->codecpar)) < 0) {
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to copy %s codec parameters to decoder context\n",
-                    av_get_media_type_string(type));
+            add_error(errors, CODEC_PARAMETERS_ERR);
             return ret;
         }
 
         /* Init the decoders */
         if ((ret = avcodec_open2(*dec_ctx, dec, &opts)) < 0) {
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Failed to open %s codec\n",
-                    av_get_media_type_string(type));
+            add_error(errors, CODEC_OPEN_ERR);
             return ret;
         }
         *stream_idx = stream_index;
@@ -176,12 +169,11 @@ static int open_codec_context(
     return 0;
 }
 
-static int get_format_from_sample_fmt(const char **fmt,
-                                      enum AVSampleFormat sample_fmt)
-{
+static int get_format_from_sample_fmt(const char **fmt, enum AVSampleFormat sample_fmt) {
     int i;
     struct sample_fmt_entry {
-        enum AVSampleFormat sample_fmt; const char *fmt_be, *fmt_le;
+        enum AVSampleFormat sample_fmt;
+        const char *fmt_be, *fmt_le;
     } sample_fmt_entries[] = {
             { AV_SAMPLE_FMT_U8,  "u8",    "u8"    },
             { AV_SAMPLE_FMT_S16, "s16be", "s16le" },
@@ -199,8 +191,6 @@ static int get_format_from_sample_fmt(const char **fmt,
         }
     }
 
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "sample format %s is not supported as output format\n",
-            av_get_sample_fmt_name(sample_fmt));
     return -1;
 }
 
@@ -209,98 +199,74 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
         jobject,
-        jstring audio_path,
-        jstring txt_cache,
-        jstring audio_cache
+        jstring audio_path
 ) {
-
-    jclass amplitudaResultClass = (env)->FindClass("linc/com/amplituda/AmplitudaResultJNI");
-    jmethodID constructor = (env)->GetMethodID(amplitudaResultClass, "<init>", "()V");
-    jfieldID amplitudes = (env)->GetFieldID(amplitudaResultClass, "amplitudes", "Ljava/lang/String;");
-    jfieldID code = (env)->GetFieldID(amplitudaResultClass, "code", "I");
-    jobject amplitudaResultReturnObject = (env)->NewObject(amplitudaResultClass, constructor);
-
-    /*
-      / / Get the mx2Data class in Java
-    jclass objectClass = (env)->FindClass("com/example/jnitest2/mx2Data");
-
-    // Get the constructor id of this class. // Get the id of the default constructor of the class. Write it like this.
-    jmethodID consID = (env)->GetMethodID(objectClass, "<init>", "()V");
-
-    / / Get the definition of each variable in the class
-    //name
-    jfieldID str = (env)->GetFieldID(objectClass, "name", "Ljava/lang/String;");
-
-    //index
-    jfieldID idex = (env)->GetFieldID(objectClass, "index", "I");
-
-    / / Create a jobject object.
-    jobject myReturn = (env)->NewObject(objectClass, consID);
-
-    / / Assign a value to each instance of the variable
-    (env)->SetObjectField(myReturn, str, (env)->NewStringUTF("mei xiang 2"));
-    (env)->SetIntField(myReturn, idex, 10);
-     */
-
-    std::string amplitudes_data = "";
-
+    const char* input_audio = env->GetStringUTFChars(audio_path, 0);
     int ret = 0;
 
-    const char* temp_txt = env->GetStringUTFChars(txt_cache, 0);
-    const char* temp_audio = env->GetStringUTFChars(audio_cache, 0);
-    // Use converted file instead of input (only when converted flag - true).
-    const char* input_audio = env->GetStringUTFChars(audio_path, 0);
+    // Return wrapper class
+    jclass amplitudaResultClass = (env)->FindClass("linc/com/amplituda/AmplitudaResultJNI");
+    jmethodID constructor = (env)->GetMethodID(amplitudaResultClass, "<init>", "()V");
+
+    // Wrapper fields
+    jfieldID amplitudes = (env)->GetFieldID(amplitudaResultClass, "amplitudes", "Ljava/lang/String;");
+    jfieldID errors = (env)->GetFieldID(amplitudaResultClass, "errors", "Ljava/lang/String;");
+
+    // Create wrapper object
+    jobject amplitudaResultReturnObject = (env)->NewObject(amplitudaResultClass, constructor);
+
+    std::string amplitudes_data = "";
+    std::string errors_data = "";
+
+    /*add_error(&errors_data, NOT_FOUND_CODEC);
+    add_error(&errors_data, NOT_FOUND_STREAM_INFO);
+    add_error(&errors_data, ALLOC_CODEC_CTX_ERR);
+    goto end_return;*/
 
     // open input file, and allocate format context
     if (avformat_open_input(&fmt_ctx, input_audio, NULL, NULL) < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not open source file %s\n", input_audio);
-//        return -1;
-        return amplitudaResultReturnObject;
+        add_error(&errors_data, FILE_OPEN_ERR);
+        goto end_return;
     }
 
     // retrieve stream information
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find stream information\n");
-//        return -1;
-        return amplitudaResultReturnObject;
+        add_error(&errors_data, NOT_FOUND_STREAM_INFO);
+        goto end_return;
     }
 
-    if (open_codec_context(&audio_stream_idx, &audio_dec_ctx, fmt_ctx, AVMEDIA_TYPE_AUDIO) >= 0) {
+    if (open_codec_context(&audio_stream_idx, &audio_dec_ctx, fmt_ctx, AVMEDIA_TYPE_AUDIO, &errors_data) >= 0) {
         audio_stream = fmt_ctx->streams[audio_stream_idx];
-//        audio_dst_file = fopen(temp_txt, "a");
     }
 
     // dump input information to stderr
     av_dump_format(fmt_ctx, 0, input_audio, 0);
 
     if (!audio_stream) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not find audio or video stream in the input, aborting\n");
         ret = 1;
-        goto end;
+        add_error(&errors_data, NOT_FOUND_STREAM);
+        goto end_cleanup;
     }
 
     frame = av_frame_alloc();
     if (!frame) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not allocate frame\n");
         ret = AVERROR(ENOMEM);
-        goto end;
+        add_error(&errors_data, ALLOC_FRAME_ERR);
+        goto end_cleanup;
     }
 
     pkt = av_packet_alloc();
     if (!pkt) {
-        __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Could not allocate packet\n");
         ret = AVERROR(ENOMEM);
-        goto end;
+        add_error(&errors_data, ALLOC_PACKET_ERR);
+        goto end_cleanup;
     }
-
-
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Pocket size: %d\n", fmt_ctx->packet_size);
 
     // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
-            ret = decode_packet(audio_dec_ctx, pkt, &amplitudes_data);
+            ret = decode_packet(audio_dec_ctx, pkt, &amplitudes_data, &errors_data);
         }
 
         av_packet_unref(pkt);
@@ -310,9 +276,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // flush the decoders
     if (audio_dec_ctx)
-        decode_packet(audio_dec_ctx, NULL, &amplitudes_data);
-
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Success!\n");
+        decode_packet(audio_dec_ctx, NULL, &amplitudes_data, &errors_data);
 
     if (audio_stream) {
         enum AVSampleFormat sfmt = audio_dec_ctx->sample_fmt;
@@ -321,34 +285,31 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
         if (av_sample_fmt_is_planar(sfmt)) {
             const char *packed = av_get_sample_fmt_name(sfmt);
-
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Warning: the sample format the decoder produced is planar (%s). This example will output the first channel only.\n", packed ? packed : "?");
-
             sfmt = av_get_packed_sample_fmt(sfmt);
             n_channels = 1;
         }
 
-        if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0)
-            goto end;
+        if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
+            add_error(&errors_data, UNSUPPORTED_SAMPLE_FMT);
+            goto end_cleanup;
+        }
     }
 
-    end:
+    // Release ffmpeg data
+    end_cleanup:
+
     avcodec_free_context(&audio_dec_ctx);
     avformat_close_input(&fmt_ctx);
-//    if (audio_dst_file)
-//        fclose(audio_dst_file);
     av_packet_free(&pkt);
     av_frame_free(&frame);
 
-    env->ReleaseStringUTFChars(audio_path, input_audio);
-    env->ReleaseStringUTFChars(txt_cache, temp_txt);
-    env->ReleaseStringUTFChars(audio_cache, temp_audio);
+    // Return without ffmpeg release
+    end_return:
 
-//    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "Result data: %s\n", amplitudes.c_str());
+    env->ReleaseStringUTFChars(audio_path, input_audio);
 
     (env)->SetObjectField(amplitudaResultReturnObject, amplitudes, (env)->NewStringUTF(amplitudes_data.c_str()));
-    (env)->SetIntField(amplitudaResultReturnObject, code, ret);
+    (env)->SetObjectField(amplitudaResultReturnObject, errors, (env)->NewStringUTF(errors_data.c_str()));
 
-//    return ret < 0;
     return amplitudaResultReturnObject;
 }

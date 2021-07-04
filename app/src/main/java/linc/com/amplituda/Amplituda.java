@@ -2,23 +2,26 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.media.MediaMetadataRetriever;
-import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UnknownFormatFlagsException;
 
-import static linc.com.amplituda.FileManager.AUDIO_TEMP;
-import static linc.com.amplituda.FileManager.TXT_TEMP;
+import linc.com.amplituda.exceptions.*;
+import linc.com.amplituda.exceptions.io.*;
+import linc.com.amplituda.exceptions.allocation.*;
+
+import static linc.com.amplituda.ErrorCode.*;
 
 public final class Amplituda {
+
+    private static final String LIB_TAG = "AMPLITUDA";
 
     public static final int SINGLE_LINE_SEQUENCE_FORMAT = 0;
     public static final int NEW_LINE_SEQUENCE_FORMAT = 1;
@@ -26,19 +29,19 @@ public final class Amplituda {
     public static final int SECONDS = 2;
     public static final int MILLIS = 3;
 
-    private static final String APP_TAG = "AMPLITUDA";
-
     private String amplitudes;
+    private ErrorListener errorListener;
 
-    private RawExtractor rawExtractor;
+    private final FileManager fileManager;
+    private final RawExtractor rawExtractor;
 
     public Amplituda(Context context) {
-        FileManager.init(context);
-        rawExtractor = new RawExtractor(context);
+        fileManager = new FileManager(context);
+        rawExtractor = new RawExtractor(context, fileManager);
     }
 
-    public Amplituda setErrorListener() {
-        // TODO: 06.06.21 error listener
+    public Amplituda setErrorListener(ErrorListener errorListener) {
+        this.errorListener = errorListener;
         return this;
     }
 
@@ -48,28 +51,12 @@ public final class Amplituda {
      */
     public synchronized Amplituda fromFile(final File audio)  {
         if(!audio.exists()) {
-            Log.e(APP_TAG, "Wrong file! Please check path and try again!");
+            throwException(new FileNotFoundException());
         } else {
-            FileManager.clearCache();
-            FileManager.saveRuntimePath(audio.getPath());
-
-            /*int code = amplitudesFromAudioJNI(
-                    audio.getPath(),
-                    FileManager.provideTempFile(TXT_TEMP),
-                    FileManager.provideTempFile(AUDIO_TEMP)
-            );*/
-            AmplitudaResultJNI result = amplitudesFromAudioJNI(
-                    audio.getPath(),
-                    FileManager.provideTempFile(TXT_TEMP),
-                    FileManager.provideTempFile(AUDIO_TEMP)
-            );
-
-            if(result.code != 0) {
-                Log.e(APP_TAG, "Something went wrong! Check error log with \"Amplituda\" tag!");
-            }
-//            this.amplitudes = FileManager.readFile(FileManager.provideTempFile(TXT_TEMP));
-            this.amplitudes = result.amplitudes;
-            FileManager.clearCache();
+            fileManager.stashPath(audio.getPath());
+            AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath());
+            handleErrors(result.getErrors());
+            amplitudes = result.getAmplitudes();
         }
         return this;
     }
@@ -90,7 +77,7 @@ public final class Amplituda {
     public Amplituda fromFile(int rawId) {
         File audio = rawExtractor.getAudioFromRawResources(rawId);
         if(audio == null) {
-            // TODO: 30.06.21 throw exception with listener: invalid res file
+            throwException(new InvalidRawResourceException());
             return this;
         }
         fromFile(audio);
@@ -112,7 +99,7 @@ public final class Amplituda {
             }
             amplitudes.add(Integer.valueOf(amplitude));
         }
-        listCallback.onSuccess(amplitudes);
+        listCallback.onEvent(amplitudes);
         return this;
     }
 
@@ -123,7 +110,7 @@ public final class Amplituda {
     public Amplituda amplitudesAsJson(final StringCallback jsonCallback) {
         if(amplitudes == null)
             return this;
-        jsonCallback.onSuccess("[" + amplitudesToSingleLineSequence(amplitudes, ", ") + "]");
+        jsonCallback.onEvent("[" + amplitudesToSingleLineSequence(amplitudes, ", ") + "]");
         return this;
     }
 
@@ -153,15 +140,12 @@ public final class Amplituda {
         if(amplitudes == null)
             return this;
         switch (format) {
-            case 0: {
-                stringCallback.onSuccess(amplitudesToSingleLineSequence(amplitudes, singleLineDelimiter));
-                break;
-            }
-            case 1: {
-                stringCallback.onSuccess(amplitudes);
-                break;
-            }
-            default: throw new UnknownFormatFlagsException("Use SINGLE_LINE_SEQUENCE_FORMAT or NEW_LINE_SEQUENCE_FORMAT as a parameter when you call amplitudesAsSequence!");
+            case SINGLE_LINE_SEQUENCE_FORMAT: stringCallback.onEvent(amplitudesToSingleLineSequence(
+                    amplitudes,
+                    singleLineDelimiter
+            )); break;
+            case NEW_LINE_SEQUENCE_FORMAT: stringCallback.onEvent(amplitudes); break;
+            default: throwException(new InvalidFormatFlagException()); break;
         }
         return this;
     }
@@ -174,7 +158,7 @@ public final class Amplituda {
     public void amplitudesPerSecond(final int second, final ListCallback listCallback) {
         amplitudesAsList(new ListCallback() {
             @Override
-            public void onSuccess(List<Integer> list) {
+            public void onEvent(List<Integer> list) {
                 int duration = (int) getDuration(SECONDS);
                 int aps = list.size() / duration; // amplitudes per second
                 // Use second as a map key
@@ -199,10 +183,9 @@ public final class Amplituda {
                 }
 
                 if(second > duration) {
-                    Log.e(APP_TAG, String.format("Cannot extract amplitudes for second %d when input audio duration = %d", second, duration));
-                    listCallback.onSuccess(new ArrayList<Integer>());
+                      throwException(new SecondOutOfBoundsException(second, duration));
                 } else {
-                    listCallback.onSuccess(amplitudes.get(second));
+                    listCallback.onEvent(amplitudes.get(second));
                 }
             }
         });
@@ -210,19 +193,24 @@ public final class Amplituda {
 
     /**
      * Returns duration from file in seconds or millis
-     * @param type - output time format: SECONDS or MILLIS
+     * @param format - output time format: SECONDS or MILLIS
      */
-    public long getDuration(final int type) {
-        String inputAudioFile = FileManager.retrieveRuntimePath();
+    public long getDuration(final int format) {
+        String inputAudioFile = fileManager.getStashedPath();
 
         if(inputAudioFile == null) {
-            Log.e(APP_TAG, "Input file not found! Please call fromFile() or fromPath() at first!");
+            throwException(new NoInputFileException());
+            return 0;
+        }
+
+        if(format != SECONDS && format != MILLIS) {
+            throwException(new InvalidFormatFlagException());
             return 0;
         }
 
         long duration = Long.parseLong(getDurationStr(inputAudioFile));
 
-        if (type == SECONDS) {
+        if (format == SECONDS) {
             return duration / 1000;
         }
         return duration;
@@ -243,16 +231,51 @@ public final class Amplituda {
      * Extracts duration from input audio file
      * @return duration in String format
      */
-    private String getDurationStr(String path) throws IllegalArgumentException {
+    private String getDurationStr(final String path) throws IllegalArgumentException {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
         mediaMetadataRetriever.setDataSource(path);
         return mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
     }
 
     /**
+     * Emit new exception event for listener
+     * @param exception - cause
+     */
+    private void throwException(final AmplitudaException exception) {
+        if(errorListener == null) {
+            return;
+        }
+        errorListener.onEvent(exception);
+    }
+
+    /**
+     * Handle and emit exc
+     * @param exception - cause
+     */
+    private void handleErrors(final Collection<Integer> errors) {
+        for(final int code : errors) {
+            switch (code) {
+                case ALLOC_FRAME_ERR:        throwException(new FrameAllocationException());           break;
+                case ALLOC_PACKET_ERR:       throwException(new PacketAllocationException());          break;
+                case ALLOC_CODEC_CTX_ERR:    throwException(new CodecContextAllocationException());    break;
+                case NOT_FOUND_CODEC:        throwException(new CodecNotFoundException());             break;
+                case NOT_FOUND_STREAM:       throwException(new StreamNotFoundException());            break;
+                case NOT_FOUND_STREAM_INFO:  throwException(new StreamInformationNotFoundException()); break;
+                case CODEC_PARAMETERS_ERR:   throwException(new CodecParametersException());           break;
+                case PACKET_SUBMITTING_ERR:  throwException(new PacketSubmittingException());          break;
+                case FILE_OPEN_ERR:          throwException(new FileOpenException());                  break;
+                case CODEC_OPEN_ERR:         throwException(new CodecOpenException());                 break;
+                case UNSUPPORTED_SAMPLE_FMT: throwException(new UnsupportedSampleFormatException());   break;
+                case DECODING_ERR:           throwException(new DecodingException());                  break;
+                default: break;
+            }
+        }
+    }
+
+    /**
      * Base Callback interface
      */
-    private interface AmplitudaCallback<T> { void onSuccess(T amplitudesResult);}
+    private interface AmplitudaCallback<T> { void onEvent(T amplitudesResult); }
 
     /**
      * Callback interface for list output
@@ -265,13 +288,17 @@ public final class Amplituda {
     public interface StringCallback extends AmplitudaCallback<String> {}
 
     /**
+     * Callback interface for error events
+     */
+    public interface ErrorListener extends AmplitudaCallback<AmplitudaException> {}
+
+    /**
      * NDK part
      */
     static {
         System.loadLibrary("native-lib");
     }
 
-//    native int amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
-    native AmplitudaResultJNI amplitudesFromAudioJNI(String pathToAudio, String txtCache, String audioCache);
+    native AmplitudaResultJNI amplitudesFromAudioJNI(String pathToAudio);
 
 }
