@@ -2,7 +2,7 @@ package linc.com.amplituda;
 
 import android.util.Log;
 
-public class AmplitudaLogger {
+public final class AmplitudaLogger {
 
     private static final String LIB_TAG = "AMPLITUDA";
     private static int priority = Log.DEBUG;

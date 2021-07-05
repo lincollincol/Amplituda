@@ -4,7 +4,7 @@ package linc.com.amplituda;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 
-class AmplitudaResultJNI {
+final class AmplitudaResultJNI {
 
     private String amplitudes;
     private String errors;

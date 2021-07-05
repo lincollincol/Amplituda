@@ -39,18 +39,6 @@ public final class Amplituda {
         rawExtractor = new RawExtractor(context, fileManager);
     }
 
-    public Amplituda setErrorListener(final ErrorListener errorListener) {
-        this.errorListener = errorListener;
-        handleAmplitudaErrors();
-        return this;
-    }
-
-    public Amplituda setLogConfig(final int priority, final boolean enable) {
-        AmplitudaLogger.priority(priority);
-        AmplitudaLogger.enable(enable);
-        return this;
-    }
-
     /**
      * Calculate amplitudes from file
      * @param audio - source file
@@ -177,6 +165,28 @@ public final class Amplituda {
             case NEW_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudes); break;
             default: throwException(new InvalidFormatFlagException()); break;
         }
+        return this;
+    }
+
+    /**
+     * Observe and handle errors
+     * @param errorListener - callback with exception as a parameter
+     */
+    public Amplituda setErrorListener(final ErrorListener errorListener) {
+        this.errorListener = errorListener;
+        // Emit all exceptions after subscribe
+        handleAmplitudaErrors();
+        return this;
+    }
+
+    /**
+     * Enable Amplituda logs for mor processing information
+     * @param priority - android Log constant. For example Log.DEBUG
+     * @param enable - turn on / off logs
+     */
+    public Amplituda setLogConfig(final int priority, final boolean enable) {
+        AmplitudaLogger.priority(priority);
+        AmplitudaLogger.enable(enable);
         return this;
     }
 

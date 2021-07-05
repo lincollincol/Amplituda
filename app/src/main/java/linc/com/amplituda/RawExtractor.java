@@ -11,12 +11,17 @@ final class RawExtractor {
     private final Resources resources;
     private final FileManager fileManager;
 
-    RawExtractor(Context context, FileManager fileManager) {
+    RawExtractor(Context context, final FileManager fileManager) {
         this.resources = context.getResources();
         this.fileManager = fileManager;
     }
 
-    public File getAudioFromRawResources(int rawId) {
+    /**
+     * Copy res/raw file to local storage
+     * @param rawId - res/raw file id
+     * @return raw file from local storage
+     */
+    File getAudioFromRawResources(final int rawId) {
         // Copy resId file from res/raw to local storage without extension
         File rawAudio = fileManager.getRawFile(rawId, resources);
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();

@@ -23,10 +23,6 @@ final class FileManager {
         cache = context.getCacheDir().getPath() + File.separator;
     }
 
-    synchronized void clearCache() {
-        deleteFile(cache + RAW_TEMP);
-    }
-
     synchronized void deleteFile(final String path) {
         File file = new File(path);
         if(file.exists()) {

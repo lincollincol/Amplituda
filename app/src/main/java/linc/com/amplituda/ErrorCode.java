@@ -14,7 +14,6 @@ public final class ErrorCode {
      * IO code
      */
 
-
     public static final int FILE_OPEN_IO_CODE = 20;
     public static final int FILE_NOT_FOUND_IO_CODE = 21;
     public static final int INVALID_RAW_RESOURCE_IO_CODE = 22;
