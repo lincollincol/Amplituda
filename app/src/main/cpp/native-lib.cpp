@@ -71,14 +71,18 @@ double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleInde
     return ret;
 }
 
-static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* result, std::string* errors)
-{
+static int decode_packet(
+        AVCodecContext *dec,
+        const AVPacket *pkt,
+        std::string* result,
+        std::string* errors
+) {
     int ret = 0;
 
     // submit the packet to the decoder
     ret = avcodec_send_packet(dec, pkt);
     if (ret < 0) {
-        add_error(errors, PACKET_SUBMITTING_ERR);
+        add_error(errors, PACKET_SUBMITTING_PROC_CODE);
         return ret;
     }
 
@@ -91,7 +95,7 @@ static int decode_packet(AVCodecContext *dec, const AVPacket *pkt, std::string* 
             if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)) {
                 return 0;
             }
-            add_error(errors, DECODING_ERR);
+            add_error(errors, DECODING_PROC_CODE);
             return ret;
         }
 
@@ -132,7 +136,7 @@ static int open_codec_context(
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        add_error(errors, NOT_FOUND_STREAM);
+        add_error(errors, STREAM_NOT_FOUND_PROC_CODE);
         return ret;
     } else {
         stream_index = ret;
@@ -141,26 +145,26 @@ static int open_codec_context(
         /* find decoder for the stream */
         dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
-            add_error(errors, NOT_FOUND_CODEC);
+            add_error(errors, CODEC_NOT_FOUND_PROC_CODE);
             return AVERROR(EINVAL);
         }
 
         /* Allocate a codec context for the decoder */
         *dec_ctx = avcodec_alloc_context3(dec);
         if (!*dec_ctx) {
-            add_error(errors, ALLOC_CODEC_CTX_ERR);
+            add_error(errors, CODEC_CONTEXT_ALLOC_CODE);
             return AVERROR(ENOMEM);
         }
 
         /* Copy codec parameters from input stream to output codec context */
         if ((ret = avcodec_parameters_to_context(*dec_ctx, st->codecpar)) < 0) {
-            add_error(errors, CODEC_PARAMETERS_ERR);
+            add_error(errors, CODEC_PARAMETERS_COPY_PROC_CODE);
             return ret;
         }
 
         /* Init the decoders */
         if ((ret = avcodec_open2(*dec_ctx, dec, &opts)) < 0) {
-            add_error(errors, CODEC_OPEN_ERR);
+            add_error(errors, CODEC_OPEN_PROC_CODE);
             return ret;
         }
         *stream_idx = stream_index;
@@ -218,20 +222,15 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     std::string amplitudes_data = "";
     std::string errors_data = "";
 
-    /*add_error(&errors_data, NOT_FOUND_CODEC);
-    add_error(&errors_data, NOT_FOUND_STREAM_INFO);
-    add_error(&errors_data, ALLOC_CODEC_CTX_ERR);
-    goto end_return;*/
-
     // open input file, and allocate format context
     if (avformat_open_input(&fmt_ctx, input_audio, NULL, NULL) < 0) {
-        add_error(&errors_data, FILE_OPEN_ERR);
+        add_error(&errors_data, FILE_OPEN_IO_CODE);
         goto end_return;
     }
 
     // retrieve stream information
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
-        add_error(&errors_data, NOT_FOUND_STREAM_INFO);
+        add_error(&errors_data, STREAM_INFO_NOT_FOUND_PROC_CODE);
         goto end_return;
     }
 
@@ -244,21 +243,21 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     if (!audio_stream) {
         ret = 1;
-        add_error(&errors_data, NOT_FOUND_STREAM);
+        add_error(&errors_data, STREAM_NOT_FOUND_PROC_CODE);
         goto end_cleanup;
     }
 
     frame = av_frame_alloc();
     if (!frame) {
         ret = AVERROR(ENOMEM);
-        add_error(&errors_data, ALLOC_FRAME_ERR);
+        add_error(&errors_data, FRAME_ALLOC_CODE);
         goto end_cleanup;
     }
 
     pkt = av_packet_alloc();
     if (!pkt) {
         ret = AVERROR(ENOMEM);
-        add_error(&errors_data, ALLOC_PACKET_ERR);
+        add_error(&errors_data, PACKET_ALLOC_CODE);
         goto end_cleanup;
     }
 
@@ -290,7 +289,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         }
 
         if ((ret = get_format_from_sample_fmt(&fmt, sfmt)) < 0) {
-            add_error(&errors_data, UNSUPPORTED_SAMPLE_FMT);
+            add_error(&errors_data, UNSUPPORTED_SAMPLE_FMT_PROC_CODE);
             goto end_cleanup;
         }
     }

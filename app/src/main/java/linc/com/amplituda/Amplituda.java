@@ -2,7 +2,6 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -278,18 +277,18 @@ public final class Amplituda {
             return;
         for(final int code : errors) {
             switch (code) {
-                case ALLOC_FRAME_ERR:        throwException(new FrameAllocationException());           break;
-                case ALLOC_PACKET_ERR:       throwException(new PacketAllocationException());          break;
-                case ALLOC_CODEC_CTX_ERR:    throwException(new CodecContextAllocationException());    break;
-                case NOT_FOUND_CODEC:        throwException(new CodecNotFoundException());             break;
-                case NOT_FOUND_STREAM:       throwException(new StreamNotFoundException());            break;
-                case NOT_FOUND_STREAM_INFO:  throwException(new StreamInformationNotFoundException()); break;
-                case CODEC_PARAMETERS_ERR:   throwException(new CodecParametersException());           break;
-                case PACKET_SUBMITTING_ERR:  throwException(new PacketSubmittingException());          break;
-                case FILE_OPEN_ERR:          throwException(new FileOpenException());                  break;
-                case CODEC_OPEN_ERR:         throwException(new CodecOpenException());                 break;
-                case UNSUPPORTED_SAMPLE_FMT: throwException(new UnsupportedSampleFormatException());   break;
-                case DECODING_ERR:           throwException(new DecodingException());                  break;
+                case FRAME_ALLOC_CODE:        throwException(new FrameAllocationException());           break;
+                case PACKET_ALLOC_CODE:       throwException(new PacketAllocationException());          break;
+                case CODEC_CONTEXT_ALLOC_CODE:    throwException(new CodecContextAllocationException());    break;
+                case CODEC_NOT_FOUND_PROC_CODE:        throwException(new CodecNotFoundException());             break;
+                case STREAM_NOT_FOUND_PROC_CODE:       throwException(new StreamNotFoundException());            break;
+                case STREAM_INFO_NOT_FOUND_PROC_CODE:  throwException(new StreamInformationNotFoundException()); break;
+                case CODEC_PARAMETERS_COPY_PROC_CODE:   throwException(new CodecParametersException());           break;
+                case PACKET_SUBMITTING_PROC_CODE:  throwException(new PacketSubmittingException());          break;
+                case FILE_OPEN_IO_CODE:          throwException(new FileOpenException());                  break;
+                case CODEC_OPEN_PROC_CODE:         throwException(new CodecOpenException());                 break;
+                case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: throwException(new UnsupportedSampleFormatException());   break;
+                case DECODING_PROC_CODE:           throwException(new DecodingException());                  break;
                 default: break;
             }
         }

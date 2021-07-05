@@ -1,11 +1,9 @@
 package linc.com.amplituda.exceptions.processing;
 
-import linc.com.amplituda.exceptions.io.AmplitudaIOException;
-
-import static linc.com.amplituda.ErrorCode.DECODING_ERR;
+import static linc.com.amplituda.ErrorCode.DECODING_PROC_CODE;
 
 public final class DecodingException extends AmplitudaProcessingException {
     public DecodingException() {
-        super("Error during decoding!", DECODING_ERR);
+        super("Error during decoding!", DECODING_PROC_CODE);
     }
 }

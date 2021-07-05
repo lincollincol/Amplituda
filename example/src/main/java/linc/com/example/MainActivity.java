@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                 .amplitudesAsJson(System.out::println);*/
 
 
-        String[] files = new String[] {
+        /*String[] files = new String[] {
                 "/storage/emulated/0/Music/first_wave.png",
                 "/storage/emulated/0/Music/kygo.mp3",
                 "/storage/emulated/0/Music/dwv.mp4",
@@ -100,16 +100,26 @@ public class MainActivity extends AppCompatActivity {
                 "/storage/emulated/0/Music/kygo_pcm.wav",
                 "/storage/emulated/0/Music/clap.wav",
                 "/storage/emulated/0/Music/clap.mp3"
+        };*/
+
+        String[] files = new String[] {
+                "/storage/emulated/0/Music/first_wave.png",
+                "/storage/emulated/0/Music/kygo.mp3",
+                "/storage/emulated/0/Music/kygo_pcm.wav",
+                "/storage/emulated/0/Music/clap.wav",
+                "/storage/emulated/0/Music/clap.mp3",
+                "/storage/emulated/0/Music/clap.opus",
+                "/storage/emulated/0/Music/clap.ogg"
         };
 
         Observable.create((ObservableOnSubscribe<String>) emitter -> {
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < files.length; i++) {
                 System.out.println("--------------------------- Process index: " + i + " ---------------------------");
-//                System.out.println("File: " + files[i]);
-                amplituda.fromFile("/storage/emulated/0/Music/kygo.mp3")
+                System.out.println("File: " + files[i]);
+                amplituda.fromFile(files[i])
                         .setLogConfig(Log.ERROR, true)
                         .amplitudesAsJson(amps -> {
-//                            System.out.println("Success data: " + amps);
+                            System.out.println("Success data: " + amps);
                             emitter.onNext(amps);
                         })
                         .setErrorListener(error -> {
