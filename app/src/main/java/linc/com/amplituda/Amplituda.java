@@ -276,7 +276,6 @@ public final class Amplituda {
      */
     private void throwException(final AmplitudaException exception) {
         if(errorListener == null) {
-            System.out.println(exception.getCode());
             errors.add(exception.getCode());
             return;
         }
