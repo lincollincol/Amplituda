@@ -2,6 +2,8 @@ package linc.com.amplituda;
 
 public final class ErrorCode {
 
+    public static final int AMPLITUDA_EXCEPTION = 1;
+
     /**
      * Alloc code
      */

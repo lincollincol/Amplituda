@@ -23,12 +23,4 @@ final class AmplitudaResultJNI {
         return errors;
     }
 
-    boolean isAmplitudesEmpty() {
-        return amplitudes == null || amplitudes.isEmpty();
-    }
-
-    boolean hasErrors() {
-        return amplitudes != null && !errors.isEmpty();
-    }
-
 }

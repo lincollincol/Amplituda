@@ -2,7 +2,6 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.media.MediaMetadataRetriever;
 
 import java.io.File;
 
@@ -17,30 +16,32 @@ final class RawExtractor {
     }
 
     /**
-     * Copy res/raw file to local storage
-     * @param rawId - res/raw file id
-     * @return raw file from local storage
+     * Get res/raw file and choose valid extension for file
+     * @return audio file with extension. Otherwise return null in case when file is not audio
      */
     File getAudioFromRawResources(final int rawId) {
         // Copy resId file from res/raw to local storage without extension
         File rawAudio = fileManager.getRawFile(rawId, resources);
-        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+
+        if(rawAudio == null) {
+            return null;
+        }
 
         // Choose correct extension
         for(AudioExtension extension : AudioExtension.values()) {
-            try {
-                // Rename temp with extension
-                File temp = new File(String.format("%s.%s", rawAudio.getPath(), extension.name()));
-                rawAudio.renameTo(temp);
+            // Rename temp with extension
+            File temp = new File(String.format("%s.%s", rawAudio.getPath(), extension.name()));
+            rawAudio.renameTo(temp);
 
-                // Validate audio with current extension
-                mediaMetadataRetriever.setDataSource(temp.getPath());
-                mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+            // Validate audio with current extension
+            if(fileManager.isAudioFile(temp.getPath())) {
                 return temp;
-            } catch (IllegalArgumentException ignored) {
-                return null;
             }
         }
+
+        // File is not supported
+        fileManager.deleteFile(rawAudio);
+
         return null;
     }
 
