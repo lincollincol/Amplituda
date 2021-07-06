@@ -39,29 +39,19 @@ public final class Amplituda {
         rawExtractor = new RawExtractor(context, fileManager);
     }
 
-    public Amplituda setErrorListener(final ErrorListener errorListener) {
-        this.errorListener = errorListener;
-        handleAmplitudaErrors();
-        return this;
-    }
-
-    public Amplituda setLogConfig(final int priority, final boolean enable) {
-        AmplitudaLogger.priority(priority);
-        AmplitudaLogger.enable(enable);
-        return this;
-    }
-
     /**
      * Calculate amplitudes from file
      * @param audio - source file
      */
     public synchronized Amplituda fromFile(final File audio)  {
+        // Clear previous data when Amplituda used repeatedly
+        clearPreviousAmplitudaData();
+
+        // Process audio
         if(!audio.exists()) {
-            amplitudes = null;
             throwException(new FileNotFoundException());
         } else {
             if(!fileManager.isAudioFile(audio.getPath())) {
-                amplitudes = null;
                 throwException(new FileOpenException());
                 return this;
             }
@@ -100,12 +90,13 @@ public final class Amplituda {
      * @param rawId - path to source file
      */
     public Amplituda fromFile(int rawId) {
-        File audio = rawExtractor.getAudioFromRawResources(rawId);
-        if(audio == null) {
+        File tempAudio = rawExtractor.getAudioFromRawResources(rawId);
+        if(tempAudio == null) {
             throwException(new InvalidRawResourceException());
             return this;
         }
-        fromFile(audio);
+        fromFile(tempAudio);
+        fileManager.deleteFile(tempAudio);
         return this;
     }
 
@@ -177,6 +168,28 @@ public final class Amplituda {
             case NEW_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudes); break;
             default: throwException(new InvalidFormatFlagException()); break;
         }
+        return this;
+    }
+
+    /**
+     * Observe and handle errors
+     * @param errorListener - callback with exception as a parameter
+     */
+    public Amplituda setErrorListener(final ErrorListener errorListener) {
+        this.errorListener = errorListener;
+        // Emit all exceptions after subscribe
+        handleAmplitudaErrors();
+        return this;
+    }
+
+    /**
+     * Enable Amplituda logs for mor processing information
+     * @param priority - android Log constant. For example Log.DEBUG
+     * @param enable - turn on / off logs
+     */
+    public Amplituda setLogConfig(final int priority, final boolean enable) {
+        AmplitudaLogger.priority(priority);
+        AmplitudaLogger.enable(enable);
         return this;
     }
 
@@ -263,6 +276,7 @@ public final class Amplituda {
      */
     private void throwException(final AmplitudaException exception) {
         if(errorListener == null) {
+            System.out.println(exception.getCode());
             errors.add(exception.getCode());
             return;
         }
@@ -276,23 +290,49 @@ public final class Amplituda {
         if(errors.isEmpty())
             return;
         for(final int code : errors) {
-            switch (code) {
-                case FRAME_ALLOC_CODE:        throwException(new FrameAllocationException());           break;
-                case PACKET_ALLOC_CODE:       throwException(new PacketAllocationException());          break;
-                case CODEC_CONTEXT_ALLOC_CODE:    throwException(new CodecContextAllocationException());    break;
-                case CODEC_NOT_FOUND_PROC_CODE:        throwException(new CodecNotFoundException());             break;
-                case STREAM_NOT_FOUND_PROC_CODE:       throwException(new StreamNotFoundException());            break;
-                case STREAM_INFO_NOT_FOUND_PROC_CODE:  throwException(new StreamInformationNotFoundException()); break;
-                case CODEC_PARAMETERS_COPY_PROC_CODE:   throwException(new CodecParametersException());           break;
-                case PACKET_SUBMITTING_PROC_CODE:  throwException(new PacketSubmittingException());          break;
-                case FILE_OPEN_IO_CODE:          throwException(new FileOpenException());                  break;
-                case CODEC_OPEN_PROC_CODE:         throwException(new CodecOpenException());                 break;
-                case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: throwException(new UnsupportedSampleFormatException());   break;
-                case DECODING_PROC_CODE:           throwException(new DecodingException());                  break;
-                default: break;
-            }
+            throwException(getExceptionFromCode(code));
         }
         errors.clear();
+    }
+
+    /**
+     * Get exception according to code
+     * @param code - exception code. All codes => ErrorCode.java
+     * @return exception from code. Return global AmplitudaException when code is unknown
+     */
+
+    private AmplitudaException getExceptionFromCode(final int code) {
+        switch (code) {
+            case FRAME_ALLOC_CODE:                 return new FrameAllocationException();
+            case PACKET_ALLOC_CODE:                return new PacketAllocationException();
+            case CODEC_CONTEXT_ALLOC_CODE:         return new CodecContextAllocationException();
+            case FILE_OPEN_IO_CODE:                return new FileOpenException();
+            case FILE_NOT_FOUND_IO_CODE:           return new FileNotFoundException();
+            case INVALID_RAW_RESOURCE_IO_CODE:     return new InvalidRawResourceException();
+            case NO_INPUT_FILE_IO_CODE:            return new NoInputFileException();
+            case CODEC_NOT_FOUND_PROC_CODE:        return new CodecNotFoundException();
+            case STREAM_NOT_FOUND_PROC_CODE:       return new StreamNotFoundException();
+            case STREAM_INFO_NOT_FOUND_PROC_CODE:  return new StreamInformationNotFoundException();
+            case CODEC_PARAMETERS_COPY_PROC_CODE:  return new CodecParametersException();
+            case PACKET_SUBMITTING_PROC_CODE:      return new PacketSubmittingException();
+            case CODEC_OPEN_PROC_CODE:             return new CodecOpenException();
+            case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: return new UnsupportedSampleFormatException();
+            case DECODING_PROC_CODE:               return new DecodingException();
+            case INVALID_FORMAT_FLAG_PROC_CODE:    return new InvalidFormatFlagException();
+            case SECOND_OUT_OF_BOUNDS_PROC_CODE:   return new SecondOutOfBoundsException();
+            default:                               return new AmplitudaException();
+        }
+    }
+
+    /**
+     * Clear local variables. Call this function when Amplituda object used repeatedly
+     */
+    private void clearPreviousAmplitudaData() {
+        amplitudes = null;
+        errors.clear();
+        if(fileManager != null) {
+            fileManager.clearStashedPath();
+        }
     }
 
     /**

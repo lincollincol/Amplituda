@@ -2,6 +2,8 @@ package linc.com.amplituda;
 
 public final class ErrorCode {
 
+    public static final int AMPLITUDA_EXCEPTION = 1;
+
     /**
      * Alloc code
      */
@@ -13,7 +15,6 @@ public final class ErrorCode {
     /**
      * IO code
      */
-
 
     public static final int FILE_OPEN_IO_CODE = 20;
     public static final int FILE_NOT_FOUND_IO_CODE = 21;

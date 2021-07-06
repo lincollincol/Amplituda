@@ -1,5 +1,7 @@
 package linc.com.amplituda.exceptions;
 
+import static linc.com.amplituda.ErrorCode.AMPLITUDA_EXCEPTION;
+
 public class AmplitudaException extends Exception {
     protected final int code;
 
@@ -8,7 +10,11 @@ public class AmplitudaException extends Exception {
         this.code = code;
     }
 
-    /** @hide */ public int getCode() {
+    public AmplitudaException() {
+        this("Something went wrong!", AMPLITUDA_EXCEPTION);
+    }
+
+    public int getCode() {
         return code;
     }
 }

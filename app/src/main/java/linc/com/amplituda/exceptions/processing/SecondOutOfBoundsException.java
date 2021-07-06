@@ -5,6 +5,7 @@ import java.util.Locale;
 import static linc.com.amplituda.ErrorCode.SECOND_OUT_OF_BOUNDS_PROC_CODE;
 
 public final class SecondOutOfBoundsException extends AmplitudaProcessingException {
+
     public SecondOutOfBoundsException(int second, int duration) {
         super(String.format(
                 Locale.getDefault(),
@@ -12,4 +13,9 @@ public final class SecondOutOfBoundsException extends AmplitudaProcessingExcepti
                 SECOND_OUT_OF_BOUNDS_PROC_CODE
         );
     }
+
+    public SecondOutOfBoundsException() {
+        this(0, 0);
+    }
+
 }

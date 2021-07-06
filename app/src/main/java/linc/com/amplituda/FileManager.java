@@ -23,26 +23,42 @@ final class FileManager {
         cache = context.getCacheDir().getPath() + File.separator;
     }
 
-    synchronized void clearCache() {
-        deleteFile(cache + RAW_TEMP);
-    }
-
-    synchronized void deleteFile(final String path) {
-        File file = new File(path);
-        if(file.exists()) {
+    /**
+     * Delete local storage file
+     */
+    synchronized void deleteFile(File file) {
+        if(file != null && file.exists()) {
             file.delete();
         }
     }
 
-    synchronized void stashPath(String path) {
+    /**
+     * Stash path to file
+     */
+    synchronized void stashPath(final String path) {
         stashedPath = path;
     }
 
+    /**
+     * Clear stashed path
+     */
+    synchronized void clearStashedPath() {
+        stashedPath = "";
+    }
+
+    /**
+     * Return stashed path
+     */
     synchronized String getStashedPath() {
         return stashedPath;
     }
 
-    synchronized boolean isAudioFile(String path) {
+    /**
+     * Validate audio file
+     * @param path - audio file path
+     * @return true when file with path is audio file.
+     */
+    synchronized boolean isAudioFile(final String path) {
         try {
             getAudioDuration(path);
             return true;
@@ -51,6 +67,9 @@ final class FileManager {
         }
     }
 
+    /**
+     * Get duration from audio file in seconds
+     */
     synchronized long getAudioDuration(String path) {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
         mediaMetadataRetriever.setDataSource(path);
@@ -59,28 +78,32 @@ final class FileManager {
         ));
     }
 
-    synchronized File getRawFile(int resource, Resources resources) {
-        InputStream inputStream = resources.openRawResource(resource);
-        File temp = new File(cache, RAW_TEMP);
-
+    /**
+     * Copy res/raw file to local storage
+     * @param resource - res/raw file id
+     * @return raw file from local storage
+     */
+    synchronized File getRawFile(final int resource, Resources resources) {
+        InputStream inputStream = null;
+        File temp = null;
         try {
+            inputStream = resources.openRawResource(resource);
+            temp = new File(cache, RAW_TEMP);
             FileOutputStream fio = new FileOutputStream(temp);
-            byte buffer[] = new byte[1024 * 4];
+            byte[] buffer = new byte[1024 * 4];
             int read = 0;
 
             while( (read = inputStream.read(buffer)) != -1) {
                 fio.write(buffer, 0, read);
             }
+
             fio.close();
-        } catch (FileNotFoundException notFoundException) {
-            notFoundException.printStackTrace();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
+        } catch (IOException | RuntimeException ignored) {
+            return null;
         } finally {
             try {
                 inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException | NullPointerException ignored) {
             }
         }
         return temp;
