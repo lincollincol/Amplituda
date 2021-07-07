@@ -4,6 +4,8 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -27,6 +29,7 @@ public final class Amplituda {
     public static final int MILLIS = 3;
 
     private ErrorListener errorListener;
+    private AmplitudaCompressOutput compression;
 
     private String amplitudes;
     private final List<Integer> errors = new LinkedList<>();
@@ -128,7 +131,6 @@ public final class Amplituda {
     public Amplituda amplitudesAsJson(final StringCallback jsonCallback) {
         if(amplitudes == null || amplitudes.isEmpty())
             return this;
-
         jsonCallback.call("[" + amplitudesToSingleLineSequence(amplitudes, ", ") + "]");
         return this;
     }
@@ -193,12 +195,18 @@ public final class Amplituda {
         return this;
     }
 
+    public Amplituda setCompression(AmplitudaCompressOutput compression) {
+        this.compression = compression;
+        compressAmplitudes();
+        return this;
+    }
+
     /**
      * Extracts list of amplitudes per specific second
      * @param second - specific second from input file
      * @param listCallback - result callback
      */
-    public void amplitudesPerSecond(final int second, final ListCallback listCallback) {
+    public void amplitudesForSecond(final int second, final ListCallback listCallback) {
         amplitudesAsList(new ListCallback() {
             @Override
             public void call(List<Integer> data) {
@@ -259,6 +267,32 @@ public final class Amplituda {
         return duration;
     }
 
+    private void compressAmplitudes() {
+        amplitudesAsList(new ListCallback() {
+            @Override
+            public void call(List<Integer> data) {
+                if(compression == AmplitudaCompressOutput.FULL)
+                    return;
+
+                StringBuilder compressed = new StringBuilder();
+                int duration = (int) getDuration(Amplituda.SECONDS);
+                int aps = (data.size() / duration) / compression.value;
+                int sum = 0;
+
+                for(int frameIndex = 0; frameIndex < data.size(); frameIndex++) {
+                    if(frameIndex % aps == 0) {
+                        compressed.append(sum / aps);
+                        compressed.append("\n");
+                        sum = 0;
+                    } else {
+                        sum += data.get(frameIndex);
+                    }
+                }
+                amplitudes = compressed.toString();
+            }
+        });
+    }
+
     /**
      * Convert result amplitudes to single line string with delimiter
      * @param amplitudes - result from native c++ code
@@ -276,7 +310,6 @@ public final class Amplituda {
      */
     private void throwException(final AmplitudaException exception) {
         if(errorListener == null) {
-            System.out.println(exception.getCode());
             errors.add(exception.getCode());
             return;
         }
