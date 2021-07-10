@@ -4,8 +4,6 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -29,7 +27,6 @@ public final class Amplituda {
     public static final int MILLIS = 3;
 
     private ErrorListener errorListener;
-    private AmplitudaCompressOutput compression;
 
     private String amplitudes;
     private final List<Integer> errors = new LinkedList<>();
@@ -168,7 +165,7 @@ public final class Amplituda {
                     singleLineDelimiter
             )); break;
             case NEW_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudes); break;
-            default: throwException(new InvalidFormatFlagException()); break;
+            default: throwException(new InvalidParameterFlagException()); break;
         }
         return this;
     }
@@ -195,12 +192,6 @@ public final class Amplituda {
         return this;
     }
 
-    public Amplituda setCompression(AmplitudaCompressOutput compression) {
-        this.compression = compression;
-        compressAmplitudes();
-        return this;
-    }
-
     /**
      * Extracts list of amplitudes per specific second
      * @param second - specific second from input file
@@ -219,8 +210,8 @@ public final class Amplituda {
                 // Temporary amplitudes list
                 List<Integer> amplitudesPerSecond = new ArrayList<>();
 
-                for(int frameIndex = 0; frameIndex < data.size(); frameIndex++) {
-                    if(frameIndex % aps == 0) { // Save all amplitudes when current frame index equals to aps
+                for(int sampleIndex = 0; sampleIndex < data.size(); sampleIndex++) {
+                    if(sampleIndex % aps == 0) { // Save all amplitudes when current frame index equals to aps
                         // Save amplitudes to map
                         amplitudes.put(currentSecond, new ArrayList<>(amplitudesPerSecond));
                         // Clear temporary amplitudes
@@ -229,7 +220,7 @@ public final class Amplituda {
                         currentSecond++;
                     } else {
                         // Add amplitude to temporary list
-                        amplitudesPerSecond.add(data.get(frameIndex));
+                        amplitudesPerSecond.add(data.get(sampleIndex));
                     }
                 }
 
@@ -238,6 +229,50 @@ public final class Amplituda {
                 } else {
                     listCallback.call(amplitudes.get(second));
                 }
+            }
+        });
+    }
+
+    public void compressAmplitudes(final int samplesPerSecond) {
+        amplitudesAsList(new ListCallback() {
+            @Override
+            public void call(List<Integer> data) {
+                if(samplesPerSecond <= 0) {
+                    throwException(new InvalidParameterFlagException());
+                    return;
+                }
+
+                int duration = (int) getDuration(SECONDS);
+                int aps = data.size() / duration;
+
+                if(samplesPerSecond > aps) {
+                    throwException(new SampleOutOfBoundsException(aps, samplesPerSecond));
+                    return;
+                }
+
+                if(aps == samplesPerSecond) {
+                    return;
+                }
+
+                int apsDivider = aps / samplesPerSecond;
+                int sum = 0;
+                StringBuilder compressed = new StringBuilder();
+
+                if(apsDivider < 2) {
+                    apsDivider = 2;
+                }
+
+                for(int sampleIndex = 0; sampleIndex < data.size(); sampleIndex++) {
+                    if(sampleIndex % apsDivider == 0) {
+                        compressed.append(sum / apsDivider);
+                        compressed.append('\n');
+                        sum = 0;
+                    } else {
+                        sum += data.get(sampleIndex);
+                    }
+                }
+
+                amplitudes = compressed.toString();
             }
         });
     }
@@ -255,7 +290,7 @@ public final class Amplituda {
         }
 
         if(format != SECONDS && format != MILLIS) {
-            throwException(new InvalidFormatFlagException());
+            throwException(new InvalidParameterFlagException());
             return 0;
         }
 
@@ -265,32 +300,6 @@ public final class Amplituda {
             return duration / 1000;
         }
         return duration;
-    }
-
-    private void compressAmplitudes() {
-        amplitudesAsList(new ListCallback() {
-            @Override
-            public void call(List<Integer> data) {
-                if(compression == AmplitudaCompressOutput.FULL)
-                    return;
-
-                StringBuilder compressed = new StringBuilder();
-                int duration = (int) getDuration(Amplituda.SECONDS);
-                int aps = (data.size() / duration) / compression.value;
-                int sum = 0;
-
-                for(int frameIndex = 0; frameIndex < data.size(); frameIndex++) {
-                    if(frameIndex % aps == 0) {
-                        compressed.append(sum / aps);
-                        compressed.append("\n");
-                        sum = 0;
-                    } else {
-                        sum += data.get(frameIndex);
-                    }
-                }
-                amplitudes = compressed.toString();
-            }
-        });
     }
 
     /**
@@ -351,7 +360,7 @@ public final class Amplituda {
             case CODEC_OPEN_PROC_CODE:             return new CodecOpenException();
             case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: return new UnsupportedSampleFormatException();
             case DECODING_PROC_CODE:               return new DecodingException();
-            case INVALID_FORMAT_FLAG_PROC_CODE:    return new InvalidFormatFlagException();
+            case INVALID_PARAMETER_FLAG_PROC_CODE:    return new InvalidParameterFlagException();
             case SECOND_OUT_OF_BOUNDS_PROC_CODE:   return new SecondOutOfBoundsException();
             default:                               return new AmplitudaException();
         }

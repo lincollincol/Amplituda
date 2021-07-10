@@ -33,7 +33,8 @@ public final class ErrorCode {
     public static final int CODEC_OPEN_PROC_CODE = 35;
     public static final int UNSUPPORTED_SAMPLE_FMT_PROC_CODE = 36;
     public static final int DECODING_PROC_CODE = 37;
-    public static final int INVALID_FORMAT_FLAG_PROC_CODE = 38;
+    public static final int INVALID_PARAMETER_FLAG_PROC_CODE = 38;
     public static final int SECOND_OUT_OF_BOUNDS_PROC_CODE = 39;
+    public static final int SAMPLE_OUT_OF_BOUNDS_PROC_CODE = 40;
 
 }
