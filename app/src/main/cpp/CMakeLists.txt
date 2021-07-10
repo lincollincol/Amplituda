@@ -32,6 +32,3 @@ target_link_libraries(native-lib
         swresample
 #        ${log-lib}
         )
-
-
-
