@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/amplituda_preview.png" width="700" height="400">
-</p>  
+# Amplituda<img align="right" src="https://github.com/lincollincol/Amplituda/blob/master/img/amplituda_preview.png" width="250" height="250">  
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/lincollincol/Amplituda)
 ![GitHub](https://img.shields.io/github/license/lincollincol/Amplituda)
@@ -9,45 +7,84 @@
 ![GitHub stars](https://img.shields.io/github/stars/lincollincol/Amplituda?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/lincollincol/Amplituda?style=social)
 
+## What is Amplituda?
+Amplituda - an android library based on FFMPEG which process audio file and provide an array of samples. Based on the processed data, you can easily draw custom waveform using the value of the processed data array as the height of the single column.  
+Average processing time is equal to 1 second for audio with duration **3 min 20 seconds** and **1 hour** audio will be processed in approximately 20 seconds.
 
-### This library using ffmpeg source. If you want to calculate amplitudes from and draw waveform - use Amplituda library
-#### Used pre-build libraries: libavutil.so, libavcodec.so, libavformat.so, libavresampe.so
+You can also use <a href="https://github.com/massoudss/waveformSeekBar">WaveformSeekBar</a> library which is fully compatible with Amplituda 
+<p align="center">
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_1.jpg" width="250" height="50"/>&#10240 &#10240
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_2.jpg" width="250" height="50"/>
+  <br/><br/>
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_3.jpg" width="250" height="50"/>&#10240 &#10240
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_4.jpg" width="250" height="50"/>
+   <br/><br/>
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_5.jpg" width="250" height="50"/>&#10240 &#10240
+</p>
 
-# Download
-## Gradle
-``` groovy
-allprojects {
-  repositories {
-    maven { url 'https://jitpack.io' }
-  }
+## Simple Example
+### • Process audio and handle result
+#### Java
+``` java
+Amplituda amplituda = new Amplituda(this);
+// . . .
+amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+    .amplitudesAsList(amplitudes -> {
+        wavefrom.setSamples(amplitudes);
+    })
+    .amplitudesForSecond(5, amplitudes -> {
+        System.out.println(String.format(
+            Locale.getDefault(),
+            "Amplitudes for second 5: %s",
+            Arrays.toString(amplitudes.toArray())
+        ));
+    });
+```  
+#### Kotlin
+``` kotlin
+val amplituda = Amplituda(this)
+// . . .
+amplituda.apply {
+    fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+    amplitudesAsList { amplitudes: List<Int> ->
+        wavefrom.setSamples(amplitudes)
+    }
+    amplitudesForSecond(5) { amplitudes: List<Int> ->
+        println(String.format(
+            Locale.getDefault(),
+            "Amplitudes for second 5: %s",
+            Arrays.toString(amplitudes.toTypedArray())
+        ))
+    }
 }
-```
-``` groovy
-dependencies {
-  implementation 'com.github.lincollincol:Amplituda:1.7'
-}
+
 ```
 
-## Maven
-``` xml
-<repositories>
-  <repository>
-    <id>jitpack.io</id>
-    <url>https://jitpack.io</url>
-  </repository>
-</repositories>
-```
-``` xml
-<dependency>
-  <groupId>com.github.lincollincol</groupId>
-  <artifactId>Amplituda</artifactId>
-  <version>1.7</version>
-</dependency>
-```
+### • Error handling
 
-# Usage
-
-#### <a href="https://github.com/lincollincol/Amplituda/tree/master/example">Example app here</a> 
+#### Java
+``` java
+Amplituda amplituda = new Amplituda(this);
+// . . . 
+amplituda.setLogConfig(Log.DEBUG, true)
+    .setErrorListener(error -> {
+        if(error instanceof AmplitudaIOException) {
+            System.out.println("IO Exception!");
+        }
+    });
+```
+#### Kotlin
+``` kotlin
+val amplituda = Amplituda(this)
+// . . . 
+amplituda.setLogConfig(Log.DEBUG, true)
+    .setErrorListener { error: AmplitudaException? ->
+        if (error is AmplitudaIOException) {
+            println("IO Exception!")
+        }
+    }
+```
+# Usage 
 
 Amplituda library provide processed audio data to draw a waveform. You can get this data in different format: 
 * sequence (single/new line)
@@ -269,28 +306,45 @@ println(amplituda.getDuration(Amplituda.MILLIS))
 */
 ```
 
-### Supported formats (tested):
-* mp3
-* wav
-* opus
-* oga
-* ogg 
-* test more formats and contact me.
+#### <a href="https://github.com/lincollincol/Amplituda/tree/master/example">Example app here</a>
+
+# Download
+## Gradle
+``` groovy
+allprojects {
+  repositories {
+    maven { url 'https://jitpack.io' }
+  }
+}
+```
+``` groovy
+dependencies {
+  implementation 'com.github.lincollincol:Amplituda:1.7'
+}
+```
+
+## Maven
+``` xml
+<repositories>
+  <repository>
+    <id>jitpack.io</id>
+    <url>https://jitpack.io</url>
+  </repository>
+</repositories>
+```
+``` xml
+<dependency>
+  <groupId>com.github.lincollincol</groupId>
+  <artifactId>Amplituda</artifactId>
+  <version>1.7</version>
+</dependency>
+```
 
 ## WARNING
 ### Amplituda process audio in the main thread !  You can run Amplituda with RxJava, Kotlin coroutines and Java Threads to process audio in the background therad.
 Amplituda don't process audio in the background thread because of :
 * You can use your own approach to work in the background thread. It makes Amplituda library more flexible.
 * Reduce library size. Third-party library uses a lot of space and Amplituda delegates this task to user.
-
-## How to draw waveform
-* You can use my <a href="https://github.com/lincollincol/waveformSeekBar">WaveformSeekBar library</a> fork in which Amplituda implemented. Example screenshot below: 
-<p align="center">
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform.jpg" width="400" height="100">
-</p>  
-
-* Use <a href="https://stackoverflow.com/questions/38744579/show-waveform-of-audio">PlayerVisualizerView</a> from this StackOverflow answer in which you should pass Amplituda data to ``` updateVisualizer() ``` as a parameter.
-* Use another third-party library to draw waveform or create cutsom view in which this waveform view use processed audio data byAmplituda to draw every line. 
 
 ## Feedback
 <a href="https://mail.google.com">linc.apps.sup@gmail.com</a>
