@@ -4,7 +4,7 @@ import java.util.Locale;
 
 import static linc.com.amplituda.ErrorCode.SAMPLE_OUT_OF_BOUNDS_PROC_CODE;
 
-public class SampleOutOfBoundsException extends AmplitudaProcessingException {
+public final class SampleOutOfBoundsException extends AmplitudaProcessingException {
 
     public SampleOutOfBoundsException(int aps, int sps) {
         super(String.format(

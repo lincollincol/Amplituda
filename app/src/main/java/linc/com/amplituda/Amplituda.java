@@ -197,7 +197,7 @@ public final class Amplituda {
      * @param second - specific second from input file
      * @param listCallback - result callback
      */
-    public void amplitudesForSecond(final int second, final ListCallback listCallback) {
+    public Amplituda amplitudesForSecond(final int second, final ListCallback listCallback) {
         amplitudesAsList(new ListCallback() {
             @Override
             public void call(List<Integer> data) {
@@ -231,6 +231,7 @@ public final class Amplituda {
                 }
             }
         });
+        return this;
     }
 
     /**
