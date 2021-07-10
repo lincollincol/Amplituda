@@ -18,6 +18,9 @@ public class MainActivity extends AppCompatActivity {
         Amplituda amplituda = new Amplituda(getApplicationContext());
 
         amplituda.fromFile("/storage/emulated/0/Music/kygo.mp3");
+        amplituda.amplitudesForSecond(400, amps -> {
+
+        });
         amplituda.setErrorListener(error -> {
             error.printStackTrace();
         });

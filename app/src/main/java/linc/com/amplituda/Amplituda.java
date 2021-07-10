@@ -29,7 +29,7 @@ public final class Amplituda {
     private ErrorListener errorListener;
 
     private String amplitudes;
-    private final List<Integer> errors = new LinkedList<>();
+    private final List<AmplitudaException> errors = new LinkedList<>();
 
     private final FileManager fileManager;
     private final RawExtractor rawExtractor;
@@ -233,7 +233,21 @@ public final class Amplituda {
         });
     }
 
-    public void compressAmplitudes(final int samplesPerSecond) {
+    /**
+     * Merge result amplitudes according to samplesPerSecond
+     * @param samplesPerSecond - number of samples per audio second
+     * For example:
+     *     audio duration = 200 seconds
+     *     after Amplituda processing, 1 second contains 40 samples
+     *     200 seconds contains 200 * 40 = 8000
+     *     case 1: samplesPerSecond = 1, function will merge this 40 samples to 1.
+     *                         Output size will be 200 amplitudes
+     *     case 2: samplesPerSecond = 20, function will merge this 40 samples to 20.
+     *                         Output size will be 4000 amplitudes
+     * Advantage: small output size
+     * Disadvantage: output quality
+     */
+    public Amplituda compressAmplitudes(final int samplesPerSecond) {
         amplitudesAsList(new ListCallback() {
             @Override
             public void call(List<Integer> data) {
@@ -275,6 +289,7 @@ public final class Amplituda {
                 amplitudes = compressed.toString();
             }
         });
+        return this;
     }
 
     /**
@@ -319,7 +334,7 @@ public final class Amplituda {
      */
     private void throwException(final AmplitudaException exception) {
         if(errorListener == null) {
-            errors.add(exception.getCode());
+            errors.add(exception);
             return;
         }
         errorListener.call(exception);
@@ -331,39 +346,10 @@ public final class Amplituda {
     private synchronized void handleAmplitudaErrors() {
         if(errors.isEmpty())
             return;
-        for(final int code : errors) {
-            throwException(getExceptionFromCode(code));
+        for(final AmplitudaException exception : errors) {
+            throwException(exception);
         }
         errors.clear();
-    }
-
-    /**
-     * Get exception according to code
-     * @param code - exception code. All codes => ErrorCode.java
-     * @return exception from code. Return global AmplitudaException when code is unknown
-     */
-
-    private AmplitudaException getExceptionFromCode(final int code) {
-        switch (code) {
-            case FRAME_ALLOC_CODE:                 return new FrameAllocationException();
-            case PACKET_ALLOC_CODE:                return new PacketAllocationException();
-            case CODEC_CONTEXT_ALLOC_CODE:         return new CodecContextAllocationException();
-            case FILE_OPEN_IO_CODE:                return new FileOpenException();
-            case FILE_NOT_FOUND_IO_CODE:           return new FileNotFoundException();
-            case INVALID_RAW_RESOURCE_IO_CODE:     return new InvalidRawResourceException();
-            case NO_INPUT_FILE_IO_CODE:            return new NoInputFileException();
-            case CODEC_NOT_FOUND_PROC_CODE:        return new CodecNotFoundException();
-            case STREAM_NOT_FOUND_PROC_CODE:       return new StreamNotFoundException();
-            case STREAM_INFO_NOT_FOUND_PROC_CODE:  return new StreamInformationNotFoundException();
-            case CODEC_PARAMETERS_COPY_PROC_CODE:  return new CodecParametersException();
-            case PACKET_SUBMITTING_PROC_CODE:      return new PacketSubmittingException();
-            case CODEC_OPEN_PROC_CODE:             return new CodecOpenException();
-            case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: return new UnsupportedSampleFormatException();
-            case DECODING_PROC_CODE:               return new DecodingException();
-            case INVALID_PARAMETER_FLAG_PROC_CODE:    return new InvalidParameterFlagException();
-            case SECOND_OUT_OF_BOUNDS_PROC_CODE:   return new SecondOutOfBoundsException();
-            default:                               return new AmplitudaException();
-        }
     }
 
     /**
