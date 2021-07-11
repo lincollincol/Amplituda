@@ -22,74 +22,123 @@ You can also use <a href="https://github.com/massoudss/waveformSeekBar">Waveform
   <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_5.jpg" width="250" height="50"/>&#10240 &#10240
 </p>
 
-## Simple Example
-### • Process audio and handle result
-#### Java
+## How to use Amplituda? 
+### • Process audio
 ``` java
-Amplituda amplituda = new Amplituda(this);
-// . . .
-amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-    .amplitudesAsList(amplitudes -> {
-        wavefrom.setSamples(amplitudes);
-    })
-    .amplitudesForSecond(5, amplitudes -> {
-        System.out.println(String.format(
-            Locale.getDefault(),
-            "Amplitudes for second 5: %s",
-            Arrays.toString(amplitudes.toArray())
-        ));
-    });
+Amplituda amplituda = new Amplituda(context);
+// From String path
+amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3");
+// From File
+amplituda.fromFile(new File("/storage/emulated/0/Music/Linc - Amplituda.mp3"));
+// From res/raw file
+amplituda.fromFile(R.raw.amplituda);
+
+/** Amplituda will process your file immediately after fromFile() call */
 ```  
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(this)
-// . . .
-amplituda.apply {
-    fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-    amplitudesAsList { amplitudes: List<Int> ->
-        wavefrom.setSamples(amplitudes)
-    }
-    amplitudesForSecond(5) { amplitudes: List<Int> ->
-        println(String.format(
-            Locale.getDefault(),
-            "Amplitudes for second 5: %s",
-            Arrays.toString(amplitudes.toTypedArray())
-        ))
-    }
-}
 
-```
-
-### • Error handling
-
-#### Java
+### • Handle result
 ``` java
-Amplituda amplituda = new Amplituda(this);
-// . . . 
-amplituda.setLogConfig(Log.DEBUG, true)
-    .setErrorListener(error -> {
-        if(error instanceof AmplitudaIOException) {
-            System.out.println("IO Exception!");
-        }
-    });
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(this)
-// . . . 
-amplituda.setLogConfig(Log.DEBUG, true)
-    .setErrorListener { error: AmplitudaException? ->
-        if (error is AmplitudaIOException) {
-            println("IO Exception!")
-        }
-    }
-```
-# Usage 
+// Get result as list
+amplituda.amplitudesAsList(amplitudes -> {
+    System.out.println(Arrays.toString(amplitudes.toArray())); 
+    // Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
+})
 
-Amplituda library provide processed audio data to draw a waveform. You can get this data in different format: 
-* sequence (single/new line)
-* json
-* list of integers.
+// Get result as list only for second `1`
+.amplitudesForSecond(1, amplitudes -> {
+    System.out.println(Arrays.toString(amplitudes.toArray()));
+    // Output: 0 0 5 . . . 6 4 0
+})
+
+// Get result as json format String 
+.amplitudesAsJson(json -> {
+    System.out.println(json);
+    // Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
+})
+
+// Get result as single line sequence format String (horizontal String) 
+.amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, horizontalSequenceString -> {
+    System.out.println(horizontalSequenceString);
+    // Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
+})
+
+// Get result as single line sequence format String with custom delimiter `*` (horizontal String)
+.amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ", customHorizontalSequenceString -> {
+    System.out.println(customHorizontalSequenceString);
+    // Output: 0 * 0 * 0 * 0 * 0 * 5 * 3 * 6 * . . . 6 * 4 * 7 * 1 * 0 * 0 * 0
+})
+
+// Get result as new line sequence format String  
+.amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSequenceString -> {
+    System.out.println(newLineSequenceString);
+    /* Output: 
+    0 
+    0 
+    5 
+    3 
+    . . . 
+    6 
+    1 
+    0 
+    0
+    */
+});
+```
+
+### • Compress amplitudes (reduce output size)  
+
+``` java
+// When you call compressAmplitudes(/***/) - Amplituda will merge result amplitudes according to samplesPerSecond. 
+// After the call you will no longer be able to get previous Amplituda data
+
+// Input audio file duration is equal to 200 seconds (example)
+amplituda.amplitudesAsList(amplitudes -> {
+    System.out.println(amplitudes.size());
+    // Output: ~ 8000
+})
+// Amplituda result size is equal to 8000 samples here (before compressAmplituda call)
+// . . .
+// Pass the desired number of samples per second to the parameters. In this example - `1` sample per second
+.compressAmplitudes(1)
+// . . .
+// Amplituda result size is equal to 200 samples here (after compressAmplituda call)
+.amplitudesAsList(amplitudes -> {
+    System.out.println(amplitudes.size());
+    // Output: ~ 200
+});
+
+```
+
+### • Get duration from input file
+``` java
+System.out.printf(
+        Locale.getDefault(),
+        "Seconds: %d\nMillis: %d%n",
+        amplituda.getDuration(Amplituda.SECONDS),
+        amplituda.getDuration(Amplituda.MILLIS)
+);
+/* Output: 
+Seconds: 210
+Millis: 210000
+*/
+```
+### • Handle errors
+All exceptions <a href="https://github.com/lincollincol/Amplituda/tree/master/app/src/main/java/linc/com/amplituda/exceptions">here</a>
+
+``` java
+amplituda.setErrorListener(error -> {
+    if(error instanceof AmplitudaIOException) {
+        System.out.println("IO Exception!");
+    }
+});
+```
+
+### • Enable Amplituda logs
+``` java
+// Use default android Log constants to set priority. The second parameter - enable or disable logs. 
+// Amplituda logs are disabled by default
+amplituda.setLogConfig(Log.DEBUG, true);
+```
 
 ## Permissions
 Add permissions to Manifest.xml file in your app and grant it, before using Amplituda
@@ -109,207 +158,10 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
 </application>
 ```
 
-## Examples 
-
-### • Get amplitudes from audio as json (String):  
-
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsJson(json -> {
-            System.out.println("As json ====== " + json);
-         });
-// Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsJson {
-            println("As json ====== $it")
-         }
-// Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
-```  
-
-### • Get amplitudes from audio as list of integers (List):  
-
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsList(list -> {
-            System.out.print("As list ====== ");
-            for(int tmp : list) {
-                System.out.print(tmp + " ");
-            }
-            System.out.println();
-         });
-// Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsList {
-            print("As list ====== ")
-            for(tmp in it) {
-                print("$tmp ")
-            }
-            println()
-         }
-// Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-```  
-
-### • Get amplitudes from audio as default single line sequence (String):  
-
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, defSeq -> {
-            System.out.println("As sequence default ====== " + defSeq);
-         });
-// Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT) {
-            println("As sequence default ====== $it")
-         }
-// Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-```  
-
-### • Get amplitudes from audio as custom single line sequence (String):  
-
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ", customSeq -> {
-            System.out.println("As sequence custom ====== " + customSeq);
-         });
-// Output: 0 * 0 * 0 * 0 * 0 * 5 * 3 * 6 * . . . 6 * 4 * 7 * 1 * 0 * 0 * 0
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ") {
-            println("As sequence custom ====== $it")
-         }
-// Output: 0 * 0 * 0 * 0 * 0 * 5 * 3 * 6 * . . . 6 * 4 * 7 * 1 * 0 * 0 * 0
-```  
-
-### • Get amplitudes from audio as new line sequence (String):  
-
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
-            System.out.println("As sequence new line ====== " + newLineSeq);
-         });
-/* Output: 
-0 
-0 
-5 
-3 
-. . . 
-6 
-1 
-0 
-0
-*/
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT) {
-            println("As sequence new line ====== $it")
-         }
-/* Output: 
-0 
-0 
-5 
-3 
-. . . 
-6 
-1 
-0 
-0
-*/
-```  
-
-### • Get amplitudes per second
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesPerSecond(5, list -> {
-            System.out.println(Arrays.toString(list.toArray()));
-         });
-/* Output: 
-[0, 0, 5, 3, . . . 6, 1, 0, 0]
-*/
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-         .amplitudesPerSecond(5) {
-            println(Arrays.toString(list.toArray()))
-         }
-/* Output: 
-[0, 0, 5, 3, . . . 6, 1, 0, 0]
-*/
-```
-
-### • Get duration from input file
-#### Java
-``` java
-Amplituda amplituda = new Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3");
-System.out.println(amplituda.getDuration(Amplituda.SECONDS));
-System.out.println(amplituda.getDuration(Amplituda.MILLIS));
-/* Output: 
-210
-210000
-*/
-```
-#### Kotlin
-``` kotlin
-val amplituda = Amplituda(context);
-. . .
-amplituda.fromPath("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-println(amplituda.getDuration(Amplituda.SECONDS))
-println(amplituda.getDuration(Amplituda.MILLIS))
-/* Output: 
-210
-210000
-*/
-```
-
 #### <a href="https://github.com/lincollincol/Amplituda/tree/master/example">Example app here</a>
 
-# Download
-## Gradle
+## Download
+### Gradle
 ``` groovy
 allprojects {
   repositories {
@@ -319,11 +171,11 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:Amplituda:1.7'
+  implementation 'com.github.lincollincol:Amplituda:2.0.2'
 }
 ```
 
-## Maven
+### Maven
 ``` xml
 <repositories>
   <repository>
@@ -336,22 +188,16 @@ dependencies {
 <dependency>
   <groupId>com.github.lincollincol</groupId>
   <artifactId>Amplituda</artifactId>
-  <version>1.7</version>
+  <version>2.0.2</version>
 </dependency>
 ```
-
-## WARNING
-### Amplituda process audio in the main thread !  You can run Amplituda with RxJava, Kotlin coroutines and Java Threads to process audio in the background therad.
-Amplituda don't process audio in the background thread because of :
-* You can use your own approach to work in the background thread. It makes Amplituda library more flexible.
-* Reduce library size. Third-party library uses a lot of space and Amplituda delegates this task to user.
 
 ## Feedback
 <a href="https://mail.google.com">linc.apps.sup@gmail.com</a>
 
 # License
 ```
-   Copyright 2020 lincollincol
+   Copyright 2020-present lincollincol
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
