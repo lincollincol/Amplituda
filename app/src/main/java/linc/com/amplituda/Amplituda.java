@@ -2,6 +2,7 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.webkit.URLUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -13,10 +14,7 @@ import java.util.Map;
 
 import linc.com.amplituda.exceptions.*;
 import linc.com.amplituda.exceptions.io.*;
-import linc.com.amplituda.exceptions.allocation.*;
 import linc.com.amplituda.exceptions.processing.*;
-
-import static linc.com.amplituda.ErrorCode.*;
 
 public final class Amplituda {
 
@@ -32,11 +30,9 @@ public final class Amplituda {
     private final List<AmplitudaException> errors = new LinkedList<>();
 
     private final FileManager fileManager;
-    private final RawExtractor rawExtractor;
 
     public Amplituda(Context context) {
         fileManager = new FileManager(context);
-        rawExtractor = new RawExtractor(context, fileManager);
     }
 
     /**
@@ -78,10 +74,20 @@ public final class Amplituda {
 
     /**
      * Calculate amplitudes from file
-     * @param audioPath - path to source file
+     * @param audio - path or url to input audio file
      */
-    public Amplituda fromFile(final String audioPath) {
-        fromFile(new File(audioPath));
+    public Amplituda fromFile(final String audio) {
+        if(URLUtil.isValidUrl(audio)) {
+            File tempAudio = fileManager.getUrlFile(audio);
+            if(tempAudio == null) {
+                throwException(new InvalidAudioUrlException());
+                return this;
+            }
+            fromFile(tempAudio);
+            fileManager.deleteFile(tempAudio);
+        } else {
+            fromFile(new File(audio));
+        }
         return this;
     }
 
@@ -90,7 +96,7 @@ public final class Amplituda {
      * @param rawId - path to source file
      */
     public Amplituda fromFile(int rawId) {
-        File tempAudio = rawExtractor.getAudioFromRawResources(rawId);
+        File tempAudio = fileManager.getRawFile(rawId);
         if(tempAudio == null) {
             throwException(new InvalidRawResourceException());
             return this;

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 
 import linc.com.amplituda.Amplituda;
@@ -20,7 +21,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Amplituda amplituda = new Amplituda(this);
-
         amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
                 .setErrorListener(error -> {
                     if(error instanceof AmplitudaIOException) {
