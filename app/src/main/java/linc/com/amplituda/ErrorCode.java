@@ -20,6 +20,7 @@ public final class ErrorCode {
     public static final int FILE_NOT_FOUND_IO_CODE = 21;
     public static final int INVALID_RAW_RESOURCE_IO_CODE = 22;
     public static final int NO_INPUT_FILE_IO_CODE = 23;
+    public static final int INVALID_AUDIO_URL_IO_CODE = 24;
 
     /**
      * Processing code
