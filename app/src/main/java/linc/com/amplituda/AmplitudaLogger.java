@@ -10,12 +10,15 @@ public final class AmplitudaLogger {
     private static int priority;
     private static boolean enable;
 
+    /**
+     * Print message to logcat
+     * @param operationLabel - operation label for message
+     * @param start - operation start time in millis
+     */
     synchronized static void logOperationTime(
             final String operationLabel,
-            final Runnable operationRunnable
+            final long start
     ) {
-        long start = System.currentTimeMillis();
-        operationRunnable.run();
         log(String.format(
                 Locale.getDefault(),
                 "%s time: %.04f seconds",

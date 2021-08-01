@@ -28,7 +28,7 @@ public final class Amplituda {
     public static final int MILLIS = 3;
 
     private static final String OPERATION_PROCESSING = "Processing";
-    private static final String OPERATION_DECODING = "Decoding";
+    private static final String OPERATION_PREPARING = "Preparing";
 
     private final ErrorListener errorListener;
     private final FileManager fileManager;
@@ -65,16 +65,24 @@ public final class Amplituda {
                 return this;
             }
 
+            // Save start time
+            long startTime = System.currentTimeMillis();
+
             // Save  current audio path
             fileManager.retainPath(audio.getPath());
 
             // Process input audio
-            AmplitudaLogger.logOperationTime(OPERATION_PROCESSING, new Runnable() {
-                @Override
-                public void run() {
-                    handleAmplitudaResult(amplitudesFromAudioJNI(audio.getPath()));
-                }
-            });
+            AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath());
+
+            // Copy result data
+            amplitudes = result.getAmplitudes();
+            errors.addAll(result.getErrors());
+
+            // Emit all exceptions after subscribe
+            handleAmplitudaErrors();
+
+            // Log operation time
+            AmplitudaLogger.logOperationTime(OPERATION_PROCESSING, startTime);
         }
         return this;
     }
@@ -89,11 +97,21 @@ public final class Amplituda {
                 throwException(new ExtendedProcessingDisabledException());
                 return this;
             }
+
+            // Save start time
+            long startTime = System.currentTimeMillis();
+
+            // Copy audio from url to local storage
             File tempAudio = fileManager.getUrlFile(audio);
             if(tempAudio == null) {
                 throwException(new InvalidAudioUrlException());
                 return this;
             }
+
+            // Log operation time
+            AmplitudaLogger.logOperationTime(OPERATION_PREPARING, startTime);
+
+            // Process local audio
             fromFile(tempAudio);
             fileManager.deleteFile(tempAudio);
         } else {
@@ -106,18 +124,29 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param rawId - path to source file
      */
-    public Amplituda fromFile(int rawId) {
+    public Amplituda fromFile(final int rawId) {
         if(!fileManager.cacheNotNull()) {
             throwException(new ExtendedProcessingDisabledException());
             return this;
         }
+
+        // Save start time
+        long startTime = System.currentTimeMillis();
+
+        // Copy raw to local file
         File tempAudio = fileManager.getRawFile(rawId);
         if(tempAudio == null) {
             throwException(new InvalidRawResourceException());
             return this;
         }
+
+        // Log operation time
+        AmplitudaLogger.logOperationTime(OPERATION_PREPARING, startTime);
+
+        // Process local raw file
         fromFile(tempAudio);
         fileManager.deleteFile(tempAudio);
+
         return this;
     }
 
@@ -329,14 +358,6 @@ public final class Amplituda {
             return duration / 1000;
         }
         return duration;
-    }
-
-    private void handleAmplitudaResult(AmplitudaResultJNI result) {
-        // Copy result data
-        amplitudes = result.getAmplitudes();
-        errors.addAll(result.getErrors());
-        // Emit all exceptions after subscribe
-        handleAmplitudaErrors();
     }
 
     /**

@@ -23,6 +23,9 @@ final class FileManager {
     private String cache;
     static final String RAW_TEMP = "amplituda_tmp_raw";
 
+    /**
+     * Check not null for cache directory
+     */
     boolean cacheNotNull() {
         return cache != null;
     }
