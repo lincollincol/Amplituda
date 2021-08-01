@@ -20,7 +20,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Amplituda amplituda = new Amplituda(this);
+        Amplituda amplituda = new Amplituda.Builder()
+//                .enableExtendedProcessing(this)
+                .setErrorListener(error -> {
+                    error.printStackTrace();
+                })
+                .build();
+
+
+//        amplituda.fromFile("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")
+        Thread processing = new Thread(() -> {
+            amplituda.fromFile("http://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3");
+        });
+
+        processing.start();
+        try {
+            processing.join();
+            amplituda.amplitudesAsJson(System.out::println);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+        /*Amplituda amplituda = new Amplituda(this);
         amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
                 .setErrorListener(error -> {
                     if(error instanceof AmplitudaIOException) {
@@ -48,6 +70,6 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .amplitudesForSecond(1, amps -> {
                     System.out.print("For second: " + Arrays.toString(amps.toArray()));
-                });
+                });*/
     }
 }

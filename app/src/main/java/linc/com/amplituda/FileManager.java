@@ -18,13 +18,26 @@ import java.util.Locale;
 
 final class FileManager {
 
+    private Resources resources;
     private String stashedPath;
-    private final String cache;
+    private String cache;
     static final String RAW_TEMP = "amplituda_tmp_raw";
-    private final Resources resources;
 
-    FileManager(final Context context) {
+    boolean cacheNotNull() {
+        return cache != null;
+    }
+
+    /**
+     * Init cache directory path
+     */
+    synchronized void initCache(final Context context) {
         cache = context.getCacheDir().getPath() + File.separator;
+    }
+
+    /**
+     * Init resources for res/raw decoding
+     */
+    synchronized void initResources(final Context context) {
         resources = context.getResources();
     }
 
@@ -90,13 +103,7 @@ final class FileManager {
      */
     synchronized File getRawFile(final int resource) {
         File temp = new File(cache, RAW_TEMP);
-        try {
-            FileOutputStream fos = new FileOutputStream(temp);
-            streamToFile(resources.openRawResource(resource), temp, 1024 * 4);
-        } catch (IOException | RuntimeException e) {
-            e.printStackTrace();
-            return null;
-        }
+        streamToFile(resources.openRawResource(resource), temp, 1024 * 4);
         return guessAudioExtension(temp);
     }
 

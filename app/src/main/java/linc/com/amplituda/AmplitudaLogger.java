@@ -5,8 +5,8 @@ import android.util.Log;
 public final class AmplitudaLogger {
 
     private static final String LIB_TAG = "AMPLITUDA";
-    private static int priority = Log.DEBUG;
-    private static boolean enable = false;
+    private static int priority;
+    private static boolean enable;
 
     /**
      * Print message to logcat

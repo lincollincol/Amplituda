@@ -2,6 +2,7 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.URLUtil;
 
 import java.io.File;
@@ -12,6 +13,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import linc.com.amplituda.callback.ErrorListener;
+import linc.com.amplituda.callback.ListCallback;
+import linc.com.amplituda.callback.StringCallback;
 import linc.com.amplituda.exceptions.*;
 import linc.com.amplituda.exceptions.io.*;
 import linc.com.amplituda.exceptions.processing.*;
@@ -24,15 +28,22 @@ public final class Amplituda {
     public static final int SECONDS = 2;
     public static final int MILLIS = 3;
 
-    private ErrorListener errorListener;
-
-    private String amplitudes;
+    private final ErrorListener errorListener;
+    private final FileManager fileManager;
     private final List<AmplitudaException> errors = new LinkedList<>();
 
-    private final FileManager fileManager;
+    private String amplitudes;
 
-    public Amplituda(Context context) {
-        fileManager = new FileManager(context);
+    private Amplituda(
+            ErrorListener errorListener,
+            FileManager fileManager,
+            final int priority,
+            final boolean enable
+    ) {
+        this.errorListener = errorListener;
+        this.fileManager = fileManager;
+        AmplitudaLogger.priority(priority);
+        AmplitudaLogger.enable(enable);
     }
 
     /**
@@ -68,6 +79,8 @@ public final class Amplituda {
             amplitudes = result.getAmplitudes();
             errors.addAll(result.getErrors());
             fileManager.stashPath(audio.getPath());
+            // Emit all exceptions after subscribe
+            handleAmplitudaErrors();
         }
         return this;
     }
@@ -78,6 +91,10 @@ public final class Amplituda {
      */
     public Amplituda fromFile(final String audio) {
         if(URLUtil.isValidUrl(audio)) {
+            if(!fileManager.cacheNotNull()) {
+                throwException(new ExtendedProcessingDisabledException());
+                return this;
+            }
             File tempAudio = fileManager.getUrlFile(audio);
             if(tempAudio == null) {
                 throwException(new InvalidAudioUrlException());
@@ -96,6 +113,10 @@ public final class Amplituda {
      * @param rawId - path to source file
      */
     public Amplituda fromFile(int rawId) {
+        if(!fileManager.cacheNotNull()) {
+            throwException(new ExtendedProcessingDisabledException());
+            return this;
+        }
         File tempAudio = fileManager.getRawFile(rawId);
         if(tempAudio == null) {
             throwException(new InvalidRawResourceException());
@@ -103,6 +124,20 @@ public final class Amplituda {
         }
         fromFile(tempAudio);
         fileManager.deleteFile(tempAudio);
+        return this;
+    }
+
+    /**
+     * Calculate amplitudes from file
+     * @param audio - path or url to input audio file
+     * Please use `fromFile(final String audio)` instead of this method
+     *
+     * ONLY TO SUPPORT WaveformSeekBar library 3.0.0 version with new Ampituda versions
+     * [https://github.com/massoudss/waveformSeekBar]
+     */
+    @Deprecated
+    public Amplituda fromPath(final String audio) {
+        fromFile(audio);
         return this;
     }
 
@@ -173,28 +208,6 @@ public final class Amplituda {
             case NEW_LINE_SEQUENCE_FORMAT: stringCallback.call(amplitudes); break;
             default: throwException(new InvalidParameterFlagException()); break;
         }
-        return this;
-    }
-
-    /**
-     * Observe and handle errors
-     * @param errorListener - callback with exception as a parameter
-     */
-    public Amplituda setErrorListener(final ErrorListener errorListener) {
-        this.errorListener = errorListener;
-        // Emit all exceptions after subscribe
-        handleAmplitudaErrors();
-        return this;
-    }
-
-    /**
-     * Enable Amplituda logs for mor processing information
-     * @param priority - android Log constant. For example Log.DEBUG
-     * @param enable - turn on / off logs
-     */
-    public Amplituda setLogConfig(final int priority, final boolean enable) {
-        AmplitudaLogger.priority(priority);
-        AmplitudaLogger.enable(enable);
         return this;
     }
 
@@ -365,30 +378,8 @@ public final class Amplituda {
     private void clearPreviousAmplitudaData() {
         amplitudes = null;
         errors.clear();
-        if(fileManager != null) {
-            fileManager.clearStashedPath();
-        }
+        fileManager.clearStashedPath();
     }
-
-    /**
-     * Base Callback interface
-     */
-    private interface AmplitudaCallback<T> { void call(T data); }
-
-    /**
-     * Callback interface for list output
-     */
-    public interface ListCallback extends AmplitudaCallback<List<Integer>> {}
-
-    /**
-     * Callback interface for string output
-     */
-    public interface StringCallback extends AmplitudaCallback<String> {}
-
-    /**
-     * Callback interface for error events
-     */
-    public interface ErrorListener extends AmplitudaCallback<AmplitudaException> {}
 
     /**
      * NDK part
@@ -398,5 +389,53 @@ public final class Amplituda {
     }
 
     native AmplitudaResultJNI amplitudesFromAudioJNI(String pathToAudio);
+
+    public static final class Builder {
+
+        private int logPriority = Log.DEBUG;
+        private boolean logEnable = false;
+        private ErrorListener errorListener = null;
+        private final FileManager fileManager = new FileManager();
+
+        /**
+         * Observe and handle errors
+         * @param errorListener - callback with exception as a parameter
+         */
+        public Builder setErrorListener(final ErrorListener errorListener) {
+            this.errorListener = errorListener;
+            return this;
+        }
+
+        /**
+         * Enable processing audio from url or res/raw
+         * @param context - this param used for initialization
+         *                cache directory and resources for res/raw
+         */
+        public Builder enableExtendedProcessing(final Context context) {
+            fileManager.initCache(context);
+            fileManager.initResources(context);
+            return this;
+        }
+
+        /**
+         * Enable Amplituda logs for mor processing information
+         * @param priority - android Log constant. For example Log.DEBUG
+         * @param enable - turn on / off logs
+         */
+        public Builder setLogConfig(final int priority, final boolean enable) {
+            this.logPriority = priority;
+            this.logEnable = enable;
+            return this;
+        }
+
+        public Amplituda build() {
+            return new Amplituda(
+                    this.errorListener,
+                    this.fileManager,
+                    this.logPriority,
+                    this.logEnable
+            );
+        }
+    }
 
 }

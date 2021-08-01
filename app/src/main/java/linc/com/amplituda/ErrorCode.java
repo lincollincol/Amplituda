@@ -21,6 +21,7 @@ public final class ErrorCode {
     public static final int INVALID_RAW_RESOURCE_IO_CODE = 22;
     public static final int NO_INPUT_FILE_IO_CODE = 23;
     public static final int INVALID_AUDIO_URL_IO_CODE = 24;
+    public static final int EXTENDED_PROCESSING_DISABLED_IO_CODE = 25;
 
     /**
      * Processing code
