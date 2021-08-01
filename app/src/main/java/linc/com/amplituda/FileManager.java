@@ -19,7 +19,7 @@ import java.util.Locale;
 final class FileManager {
 
     private Resources resources;
-    private String stashedPath;
+    private String cachePath;
     private String cache;
     static final String RAW_TEMP = "amplituda_tmp_raw";
 
@@ -51,24 +51,24 @@ final class FileManager {
     }
 
     /**
-     * Stash path to file
+     * Retain current audio path
      */
-    synchronized void stashPath(final String path) {
-        stashedPath = path;
+    synchronized void retainPath(final String path) {
+        cachePath = path;
     }
 
     /**
-     * Clear stashed path
+     * Clear saved path
      */
-    synchronized void clearStashedPath() {
-        stashedPath = "";
+    synchronized void clearPath() {
+        cachePath = "";
     }
 
     /**
      * Return stashed path
      */
-    synchronized String getStashedPath() {
-        return stashedPath;
+    synchronized String getCachePath() {
+        return cachePath;
     }
 
     /**

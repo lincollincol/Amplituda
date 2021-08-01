@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import linc.com.amplituda.callback.ErrorListener;
@@ -27,6 +26,9 @@ public final class Amplituda {
 
     public static final int SECONDS = 2;
     public static final int MILLIS = 3;
+
+    private static final String OPERATION_PROCESSING = "Processing";
+    private static final String OPERATION_DECODING = "Decoding";
 
     private final ErrorListener errorListener;
     private final FileManager fileManager;
@@ -62,25 +64,17 @@ public final class Amplituda {
                 throwException(new FileOpenException());
                 return this;
             }
-            // Save time before processing
-            long start = System.currentTimeMillis();
+
+            // Save  current audio path
+            fileManager.retainPath(audio.getPath());
 
             // Process input audio
-            AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath());
-
-            // Log processing time
-            AmplitudaLogger.log(String.format(
-                    Locale.getDefault(),
-                    "Processing time: %.04f seconds",
-                    ((System.currentTimeMillis() - start) / 1000f))
-            );
-
-            // Copy result data
-            amplitudes = result.getAmplitudes();
-            errors.addAll(result.getErrors());
-            fileManager.stashPath(audio.getPath());
-            // Emit all exceptions after subscribe
-            handleAmplitudaErrors();
+            AmplitudaLogger.logOperationTime(OPERATION_PROCESSING, new Runnable() {
+                @Override
+                public void run() {
+                    handleAmplitudaResult(amplitudesFromAudioJNI(audio.getPath()));
+                }
+            });
         }
         return this;
     }
@@ -317,7 +311,7 @@ public final class Amplituda {
      * @param format - output time format: SECONDS or MILLIS
      */
     public long getDuration(final int format) {
-        String inputAudioFile = fileManager.getStashedPath();
+        String inputAudioFile = fileManager.getCachePath();
 
         if(inputAudioFile == null) {
             throwException(new NoInputFileException());
@@ -335,6 +329,14 @@ public final class Amplituda {
             return duration / 1000;
         }
         return duration;
+    }
+
+    private void handleAmplitudaResult(AmplitudaResultJNI result) {
+        // Copy result data
+        amplitudes = result.getAmplitudes();
+        errors.addAll(result.getErrors());
+        // Emit all exceptions after subscribe
+        handleAmplitudaErrors();
     }
 
     /**
@@ -378,7 +380,7 @@ public final class Amplituda {
     private void clearPreviousAmplitudaData() {
         amplitudes = null;
         errors.clear();
-        fileManager.clearStashedPath();
+        fileManager.clearPath();
     }
 
     /**

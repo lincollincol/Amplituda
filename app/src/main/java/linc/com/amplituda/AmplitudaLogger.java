@@ -2,11 +2,27 @@ package linc.com.amplituda;
 
 import android.util.Log;
 
+import java.util.Locale;
+
 public final class AmplitudaLogger {
 
     private static final String LIB_TAG = "AMPLITUDA";
     private static int priority;
     private static boolean enable;
+
+    synchronized static void logOperationTime(
+            final String operationLabel,
+            final Runnable operationRunnable
+    ) {
+        long start = System.currentTimeMillis();
+        operationRunnable.run();
+        log(String.format(
+                Locale.getDefault(),
+                "%s time: %.04f seconds",
+                operationLabel,
+                ((System.currentTimeMillis() - start) / 1000f)
+        ));
+    }
 
     /**
      * Print message to logcat

@@ -21,10 +21,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Amplituda amplituda = new Amplituda.Builder()
-//                .enableExtendedProcessing(this)
+                .enableExtendedProcessing(this)
                 .setErrorListener(error -> {
                     error.printStackTrace();
                 })
+                .setLogConfig(Log.ERROR, true)
                 .build();
 
 
