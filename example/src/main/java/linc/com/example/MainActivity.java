@@ -5,13 +5,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.File;
 import java.util.Arrays;
+import java.util.Locale;
 
 import linc.com.amplituda.Amplituda;
-import linc.com.amplituda.exceptions.io.AmplitudaIOException;
-import linc.com.amplituda.exceptions.processing.AmplitudaProcessingException;
+import linc.com.amplituda.AmplitudaProcessingOutput;
+import linc.com.amplituda.AmplitudaResult;
+import linc.com.amplituda.InputAudio;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,37 +21,61 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Amplituda amplituda = new Amplituda.Builder()
-                .enableExtendedProcessing(this)
-                .setErrorListener(error -> {
-                    if(error instanceof AmplitudaIOException) {
-                        System.out.println("IO exception!");
-                    } else if(error instanceof AmplitudaProcessingException) {
-                        System.out.println("Processing exception!");
-                    }
-                })
-                .setLogConfig(Log.ERROR, true)
-                .build();
+        Amplituda amplituda = new Amplituda(this);
+        amplituda.setLogConfig(Log.DEBUG, true);
 
-        amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-                .compressAmplitudes(1)
-                .amplitudesAsJson(json -> {
-                    System.out.println("As json: " + json);
-                })
-                .amplitudesAsList(list -> {
-                    System.out.print("As list: " + Arrays.toString(list.toArray()));
-                })
-                .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, defSeq -> {
-                    System.out.println("As sequence default: " + defSeq);
-                })
-                .amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ", custSeq -> {
-                    System.out.println("As sequence custom: " + custSeq);
-                })
-                .amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSeq -> {
-                    System.out.println("As new line sequence: " + newLineSeq);
-                })
-                .amplitudesForSecond(1, amps -> {
-                    System.out.print("For second: " + Arrays.toString(amps.toArray()));
-                });
+        AmplitudaResult<String> localPathResult = amplituda.processAudio("/storage/emulated/0/Music/kygo.mp3")
+                .get();
+        printResult(localPathResult);
+
+        AmplitudaResult<File> localFileResult = amplituda.processAudio(new File("/storage/emulated/0/Music/kygo.mp3"))
+                .get();
+        printResult(localFileResult);
+
+
+        Thread urlTask = new Thread(() -> {
+            AmplitudaResult<String> urlResult = amplituda.processAudio("http://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg")
+                    .get();
+            printResult(urlResult);
+        });
+        urlTask.start();
+        /*try {
+            urlTask.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
+
+        AmplitudaResult<Integer> resourceResult = amplituda.processAudio(R.raw.clap)
+                .get();
+        printResult(resourceResult);
+
     }
+
+    private void printResult(AmplitudaResult<?> result) {
+        System.out.printf(Locale.US,
+                "Audio info:\n" +
+                        "millis = %d\n" +
+                        "seconds = %d\n\n" +
+                        "source = %s\n" +
+                        "source type = %s\n\n" +
+                        "Amplitudes:\n" +
+                        "size: = %d\n" +
+                        "list: = %s\n" +
+                        "json: = %s\n" +
+                        "single line sequence = %s\n" +
+                        "new line sequence = %s\n" +
+                        "custom delimiter sequence = %s\n%n",
+                result.getAudioDuration(AmplitudaResult.DurationUnit.MILLIS),
+                result.getAudioDuration(AmplitudaResult.DurationUnit.SECONDS),
+                result.getInputAudioType() == InputAudio.Type.FILE ? ((File) result.getAudioSource()).getAbsolutePath() : result.getAudioSource(),
+                result.getInputAudioType().name(),
+                result.amplitudesAsList().size(),
+                Arrays.toString(result.amplitudesAsList().toArray()),
+                result.amplitudesAsJson(),
+                result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE),
+                result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE),
+                result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE, " * ")
+        );
+    }
+
 }
