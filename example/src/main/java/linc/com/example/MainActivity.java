@@ -2,10 +2,13 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -13,6 +16,7 @@ import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaResult;
 import linc.com.amplituda.InputAudio;
+import linc.com.amplituda.exceptions.AmplitudaException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,32 +26,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Amplituda amplituda = new Amplituda(this);
-        amplituda.setLogConfig(Log.DEBUG, true);
 
-        AmplitudaResult<String> localPathResult = amplituda.processAudio("/storage/emulated/0/Music/kygo.mp3")
-                .get();
-        printResult(localPathResult);
-
-        AmplitudaResult<File> localFileResult = amplituda.processAudio(new File("/storage/emulated/0/Music/kygo.mp3"))
-                .get();
-        printResult(localFileResult);
-
-
-        Thread urlTask = new Thread(() -> {
-            AmplitudaResult<String> urlResult = amplituda.processAudio("http://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg")
-                    .get();
-            printResult(urlResult);
-        });
-        urlTask.start();
-        /*try {
-            urlTask.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
-
-        AmplitudaResult<Integer> resourceResult = amplituda.processAudio(R.raw.clap)
-                .get();
-        printResult(resourceResult);
+        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+                .get(this::printResult, Throwable::printStackTrace);
 
     }
 
@@ -73,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
                 Arrays.toString(result.amplitudesAsList().toArray()),
                 result.amplitudesAsJson(),
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE),
-                result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE),
+                result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.NEW_LINE),
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE, " * ")
         );
     }

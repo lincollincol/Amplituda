@@ -9,7 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AmplitudaResult<T> {
+public final class AmplitudaResult<T> {
 
     private String amplitudes;
     private final InputAudio<T> inputAudio;
@@ -153,6 +153,10 @@ public class AmplitudaResult<T> {
         return TextUtils.join(delimiter, log);
     }
 
+    /**
+     * Update amplitudes data
+     * Call only from internal compress()
+     */
     void setAmplitudes(final String amplitudes) {
         this.amplitudes = amplitudes;
     }

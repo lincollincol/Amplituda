@@ -1,6 +1,6 @@
 package linc.com.amplituda;
 
-public class InputAudio<T> {
+public final class InputAudio<T> {
     private final T source;
     private long duration;
     private InputAudio.Type type;

@@ -9,7 +9,7 @@ import linc.com.amplituda.exceptions.AmplitudaException;
 import linc.com.amplituda.exceptions.processing.InvalidParameterFlagException;
 import linc.com.amplituda.exceptions.processing.SampleOutOfBoundsException;
 
-public class AmplitudaProcessingOutput<T> {
+public final class AmplitudaProcessingOutput<T> {
 
     private final AmplitudaResult<T> amplitudaResult;
     private LinkedHashSet<AmplitudaException> processingErrors = new LinkedHashSet<>();
@@ -93,7 +93,11 @@ public class AmplitudaProcessingOutput<T> {
         return this;
     }
 
-
+    /**
+     * Get Amplituda processing result. This function returns result in callback
+     * @param successListener - success processing operation callback
+     * @param errorListener - processing error callback
+     */
     public void get(
             final AmplitudaSuccessListener<T> successListener,
             final AmplitudaErrorListener errorListener
@@ -102,15 +106,28 @@ public class AmplitudaProcessingOutput<T> {
         successListener.onSuccess(amplitudaResult);
     }
 
+    /**
+     * Get Amplituda processing result. This function returns result in callback
+     * @param successListener - success processing operation callback
+     */
     public void get(final AmplitudaSuccessListener<T> successListener) {
         get(successListener, null);
     }
 
+    /**
+     * Get Amplituda processing result
+     * @param errorListener - processing error callback
+     * @return AmplitudaResult object
+     */
     public AmplitudaResult<T> get(final AmplitudaErrorListener errorListener) {
         handleAmplitudaProcessingErrors(errorListener);
         return amplitudaResult;
     }
 
+    /**
+     * Get Amplituda processing result
+     * @return AmplitudaResult object
+     */
     public AmplitudaResult<T> get() {
         return amplitudaResult;
     }

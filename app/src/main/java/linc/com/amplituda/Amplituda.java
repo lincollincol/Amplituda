@@ -10,9 +10,6 @@ import linc.com.amplituda.exceptions.io.*;
 
 public final class Amplituda {
 
-    private static final String OPERATION_PROCESSING = "Processing";
-    private static final String OPERATION_PREPARING = "Preparing";
-
     private final FileManager fileManager;
 
     public Amplituda(final Context context) {
@@ -34,7 +31,10 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param audio - source file
      */
-    private AmplitudaResultJNI processFileJNI(final File audio) throws AmplitudaException {
+    private synchronized <T> AmplitudaResultJNI processFileJNI(
+            final File audio,
+            final InputAudio<T> inputAudio
+    ) throws AmplitudaException {
         // Process audio
         if(!audio.exists()) {
             throw new FileNotFoundException();
@@ -50,19 +50,18 @@ public final class Amplituda {
         // Process input audio
         AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath());
 
+        // Save audio duration when file is valid and was processed
+        inputAudio.setDuration(fileManager.getAudioDuration(audio.getPath()));
+
         // Log operation time
-        AmplitudaLogger.logOperationTime(OPERATION_PROCESSING, startTime);
+        AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PROCESSING, startTime);
         return result;
     }
 
     public AmplitudaProcessingOutput<File> processAudio(final File audio) {
-        InputAudio<File> inputAudio = new InputAudio<>(
-                audio,
-                fileManager.getAudioDuration(audio.getPath()),
-                InputAudio.Type.FILE
-        );
+        InputAudio<File> inputAudio = new InputAudio<>(audio, InputAudio.Type.FILE);
         try {
-            return new AmplitudaProcessingOutput<>(processFileJNI(audio), inputAudio);
+            return new AmplitudaProcessingOutput<>(processFileJNI(audio, inputAudio), inputAudio);
         } catch (AmplitudaException exception) {
             // Handle processing error
             return new AmplitudaProcessingOutput<>(exception, inputAudio);
@@ -80,9 +79,8 @@ public final class Amplituda {
             // When audio is local file - process as file
             if(!URLUtil.isValidUrl(audio)) {
                 inputAudio.setType(InputAudio.Type.PATH);
-                inputAudio.setDuration(fileManager.getAudioDuration(audio));
                 return new AmplitudaProcessingOutput<>(
-                        processFileJNI(new File(audio)),
+                        processFileJNI(new File(audio), inputAudio),
                         inputAudio
                 );
             }
@@ -104,13 +102,10 @@ public final class Amplituda {
             }
 
             // Log operation time
-            AmplitudaLogger.logOperationTime(OPERATION_PREPARING, startTime);
+            AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PREPARING, startTime);
 
             // Process local audio
-            AmplitudaResultJNI result = processFileJNI(tempAudio);
-
-            // Save tmp file duration
-            inputAudio.setDuration(fileManager.getAudioDuration(tempAudio.getPath()));
+            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio);
 
             // Remove tmp file
             fileManager.deleteFile(tempAudio);
@@ -144,14 +139,11 @@ public final class Amplituda {
         }
 
         // Log operation time
-        AmplitudaLogger.logOperationTime(OPERATION_PREPARING, startTime);
+        AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PREPARING, startTime);
 
         try {
             // Process local raw file
-            AmplitudaResultJNI result = processFileJNI(tempAudio);
-
-            // Save tmp resource file duration
-            inputAudio.setDuration(fileManager.getAudioDuration(tempAudio.getPath()));
+            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio);
 
             // Delete tmp
             fileManager.deleteFile(tempAudio);
