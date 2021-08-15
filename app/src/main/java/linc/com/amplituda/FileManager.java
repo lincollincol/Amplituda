@@ -18,30 +18,13 @@ import java.util.Locale;
 
 final class FileManager {
 
-    private Resources resources;
-    private String cachePath;
-    private String cache;
     static final String RAW_TEMP = "amplituda_tmp_raw";
+    private final Resources resources;
+    private final String cache;
 
-    /**
-     * Check not null for cache directory
-     */
-    boolean cacheNotNull() {
-        return cache != null;
-    }
-
-    /**
-     * Init cache directory path
-     */
-    synchronized void initCache(final Context context) {
-        cache = context.getCacheDir().getPath() + File.separator;
-    }
-
-    /**
-     * Init resources for res/raw decoding
-     */
-    synchronized void initResources(final Context context) {
+    public FileManager(final Context context) {
         resources = context.getResources();
+        cache = context.getCacheDir().getPath() + File.separator;
     }
 
     /**
@@ -51,27 +34,6 @@ final class FileManager {
         if(file != null && file.exists()) {
             file.delete();
         }
-    }
-
-    /**
-     * Retain current audio path
-     */
-    synchronized void retainPath(final String path) {
-        cachePath = path;
-    }
-
-    /**
-     * Clear saved path
-     */
-    synchronized void clearPath() {
-        cachePath = "";
-    }
-
-    /**
-     * Return stashed path
-     */
-    synchronized String getCachePath() {
-        return cachePath;
     }
 
     /**
@@ -106,8 +68,12 @@ final class FileManager {
      */
     synchronized File getRawFile(final int resource) {
         File temp = new File(cache, RAW_TEMP);
-        streamToFile(resources.openRawResource(resource), temp, 1024 * 4);
-        return guessAudioExtension(temp);
+        try {
+            streamToFile(resources.openRawResource(resource), temp, 1024 * 4);
+            return guessAudioExtension(temp);
+        } catch (Resources.NotFoundException ignored) {
+            return null;
+        }
     }
 
     /**

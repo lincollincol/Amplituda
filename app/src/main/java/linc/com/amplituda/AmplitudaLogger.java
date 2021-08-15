@@ -4,11 +4,13 @@ import android.util.Log;
 
 import java.util.Locale;
 
-public final class AmplitudaLogger {
+final class AmplitudaLogger {
 
+    static final String OPERATION_PROCESSING = "Processing";
+    static final String OPERATION_PREPARING = "Preparing";
     private static final String LIB_TAG = "AMPLITUDA";
-    private static int priority;
-    private static boolean enable;
+    private static int priority = Log.DEBUG;
+    private static boolean enable = false;
 
     /**
      * Print message to logcat
@@ -46,7 +48,7 @@ public final class AmplitudaLogger {
 
     /**
      * Set log message priority
-     * @param - android Log priority constant.
+     * @param logPrior - android Log priority constant.
      */
     synchronized static void priority(final int logPrior) {
         priority = logPrior;
