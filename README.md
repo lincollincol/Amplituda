@@ -23,55 +23,173 @@ You can also use <a href="https://github.com/massoudss/waveformSeekBar">Waveform
 </p>
 
 ## How to use Amplituda? 
-### • Process audio
+#### Example
+``` java
+
+/* Step 1: create Amplituda */
+Amplituda amplituda = new Amplituda(context);
+
+/* Step 2: process audio and handle result */
+amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+        .compress(1) // Optional call. Parameter `1` means that you want 1 amplitude per second
+        .get(result -> {
+            List<Integer> amplitudesData = result.amplitudesAsList();
+            List<Integer> amplitudesForFirstSecond = result.amplitudesForSecond(1);
+            long duration = result.getAudioDuration(AmplitudaResult.DurationUnit.SECONDS);
+            String source = result.getAudioSource();
+            InputAudio.Type sourceType = result.getInputAudioType();
+            // etc
+        }, exception -> {
+            if(exception instanceof AmplitudaIOException) {
+                System.out.println("IO Exception!");
+            }
+        });
+
+/* And that's all! You can read full documentation below for more information about Amplituda features */
+
+``` 
+
+### Full documentation 
+#### • Process audio
 ``` java
 Amplituda amplituda = new Amplituda(context);
-// From String path
-amplituda.fromFile("/storage/emulated/0/Music/Linc - Amplituda.mp3");
-// From File
-amplituda.fromFile(new File("/storage/emulated/0/Music/Linc - Amplituda.mp3"));
-// From res/raw file
-amplituda.fromFile(R.raw.amplituda);
 
-/** Amplituda will process your file immediately after fromFile() call */
-```  
+/**
+ * AmplitudaProcessingOutput<T> - wrapper class for Amplituda processing result.
+ * This class stores the output audio processing data
+ * and provides functions to obtain the result
+ * Generic type T - audio source type: File, String (URL or path), Integer (res/raw) 
+ */
+AmplitudaProcessingOutput<T> processingOutput;
 
-### • Handle result
+/* Process audio */
+
+// Local audio file
+processingOutput = amplituda.processAudio(new File("/storage/emulated/0/Music/Linc - Amplituda.mp3"));
+
+// Path to local audio file
+processingOutput = amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3");
+
+// URL audio
+processingOutput = amplituda.processAudio("https://audio-url-example.com/amplituda.mp3");
+
+// Resource audio
+processingOutput = amplituda.processAudio(R.raw.amplituda);
+
+/** 
+ * Compress result data (optional)
+ * The output data can contain a lot of samples. 
+ * For example: 
+ *  - 5-second audio can contain 100+ samples
+ *  - 3-minute audio can contain 7000+ samples
+ * You can call compress() and pass the number of preferred samples per second as a parameter.
+ */
+processingOutput.compress(1);
+
+```
+
+#### • Handle result and errors
 ``` java
-// Get result as list
-amplituda.amplitudesAsList(amplitudes -> {
-    System.out.println(Arrays.toString(amplitudes.toArray())); 
-    // Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-})
+AmplitudaProcessingOutput<T> processingOutput;
+// . . . process audio . . .
 
-// Get result as list only for second `1`
-.amplitudesForSecond(1, amplitudes -> {
-    System.out.println(Arrays.toString(amplitudes.toArray()));
-    // Output: 0 0 5 . . . 6 4 0
-})
+/**
+ * AmplitudaResult<T> - wrapper class for the final result
+ * This class also provides many functions to format result: List<Integer>, String etc
+ * and info about input audio: 
+ *  - Input audio source: path to audio/resource or url. 
+ *  - Source type according to input audio: FILE, PATH, URL or RESOURCE 
+ *  - Audio duration
+ * Generic type T - audio source type: File, String (URL or path), Integer (res/raw)
+ */
+ AmplitudaResult<T> result;
+ 
+ /**
+  * After processing you can get the result by calling the function get() 
+  * This function has multiple overloads:
+  *  - void get(successListener, errorListener)
+  *  - void get(successListener)
+  *  - AmplitudaResult<T> get(errorListener)
+  *  - AmplitudaResult<T> get(successListener)
+  */
+ 
+// Overload #1: result as a callback with error listener
+processingOutput.get(result -> { 
+        /* handle result here */ 
+    }, exception -> { 
+        /* handle errors here */ 
+    });
 
-// Get result as json format String 
-.amplitudesAsJson(json -> {
-    System.out.println(json);
-    // Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
-})
+// Overload #2: result as a callback without error listener
+processingOutput.get((AmplitudaSuccessListener<T>) result -> { 
+    /* handle result here */ 
+});
 
-// Get result as single line sequence format String (horizontal String) 
-.amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, horizontalSequenceString -> {
-    System.out.println(horizontalSequenceString);
-    // Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
-})
+// Overload #3: result as a returned object with error listener
+result = processingOutput.get((AmplitudaException exception) -> { 
+    /* handle errors here */ 
+});
+
+// Overload #4: result as a returned object without error listener
+result = processingOutput.get();
+
+/**
+ * Exceptions. More info about exceptions here:
+ * https://github.com/lincollincol/Amplituda/tree/master/app/src/main/java/linc/com/amplituda/exceptions
+ */
+processingOutput.get((AmplitudaException exception) -> {
+    if(exception instanceof AmplitudaIOException) {
+        // Handle io exceptions
+    } else if(exception instanceof AmplitudaProcessingException) {
+        // Handle processing exceptions
+    } else {
+        exception.printStackTrace();
+    }
+});
+
+```
+
+#### • Format result
+
+
+``` java
+/**
+ * Format result. As written earlier, AmplitudaResult
+ * has many functions for formatting the result
+ */
+ AmplitudaResult<T> result;
+ 
+ // Get result as list:
+ List<Integer> samples = result.amplitudesAsList(); 
+ System.out.println(Arrays.toString(samples.toArray()));
+ // Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
+ 
+ // Get result as list only for second `1`
+ List<Integer> samplesForFirstSecond = result.amplitudesForSecond(1);
+ System.out.println(Arrays.toString(samples.toArray()));
+ // Output: [0, 0, 5, . . . 6, 4, 0]
+
+// Get result as json format String
+System.out.println(result.amplitudesAsJson());
+// Output: [0, 0, 0, 0, 0, 5, 3, 6, . . . , 6, 4, 7, 1, 0, 0, 0]
+
+// Get result as single line sequence format String (horizontal String)
+System.out.println(result.amplitudesAsSequence(
+        AmplitudaResult.SequenceFormat.SINGLE_LINE)
+);
+// Output: 0 0 0 0 0 5 3 6 . . . 6 4 7 1 0 0 0
 
 // Get result as single line sequence format String with custom delimiter `*` (horizontal String)
-.amplitudesAsSequence(Amplituda.SINGLE_LINE_SEQUENCE_FORMAT, " * ", customHorizontalSequenceString -> {
-    System.out.println(customHorizontalSequenceString);
-    // Output: 0 * 0 * 0 * 0 * 0 * 5 * 3 * 6 * . . . 6 * 4 * 7 * 1 * 0 * 0 * 0
-})
+System.out.println(result.amplitudesAsSequence(
+        AmplitudaResult.SequenceFormat.SINGLE_LINE, " * ")
+);
+// Output: 0 * 0 * 0 * 0 * 0 * 5 * 3 * 6 * . . . 6 * 4 * 7 * 1 * 0 * 0 * 0
 
 // Get result as new line sequence format String  
-.amplitudesAsSequence(Amplituda.NEW_LINE_SEQUENCE_FORMAT, newLineSequenceString -> {
-    System.out.println(newLineSequenceString);
-    /* Output: 
+System.out.println(result.amplitudesAsSequence(
+        AmplitudaResult.SequenceFormat.NEW_LINE)
+);
+/* Output: 
     0 
     0 
     5 
@@ -82,71 +200,26 @@ amplituda.amplitudesAsList(amplitudes -> {
     0 
     0
     */
-});
-```
-
-### • Compress amplitudes (reduce output size)  
-
-``` java
-// When you call compressAmplitudes(/***/) - Amplituda will merge result amplitudes according to samplesPerSecond. 
-// After the call you will no longer be able to get previous Amplituda data
-
-// Input audio file duration is equal to 200 seconds (example)
-amplituda.amplitudesAsList(amplitudes -> {
-    System.out.println(amplitudes.size());
-    // Output: ~ 8000
-})
-// Amplituda result size is equal to 8000 samples here (before compressAmplituda call)
-// . . .
-// Pass the desired number of samples per second to the parameters. In this example - `1` sample per second
-.compressAmplitudes(1)
-// . . .
-// Amplituda result size is equal to 200 samples here (after compressAmplituda call)
-.amplitudesAsList(amplitudes -> {
-    System.out.println(amplitudes.size());
-    // Output: ~ 200
-});
 
 ```
 
-### • Get duration from input file
+#### • Enable Amplituda logs (optional)
 ``` java
-System.out.printf(
-        Locale.getDefault(),
-        "Seconds: %d\nMillis: %d%n",
-        amplituda.getDuration(Amplituda.SECONDS),
-        amplituda.getDuration(Amplituda.MILLIS)
-);
-/* Output: 
-Seconds: 210
-Millis: 210000
-*/
-```
-### • Handle errors
-All exceptions <a href="https://github.com/lincollincol/Amplituda/tree/master/app/src/main/java/linc/com/amplituda/exceptions">here</a>
+Amplituda amplituda = new Amplituda(context);
 
-``` java
-amplituda.setErrorListener(error -> {
-    if(error instanceof AmplitudaIOException) {
-        System.out.println("IO Exception!");
-    }
-});
-```
-
-### • Enable Amplituda logs
-``` java
 // Use default android Log constants to set priority. The second parameter - enable or disable logs. 
 // Amplituda logs are disabled by default
 amplituda.setLogConfig(Log.DEBUG, true);
 ```
 
-## Permissions
+### Permissions
 Add permissions to Manifest.xml file in your app and grant it, before using Amplituda
 ``` xml
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.INTERNET" />
 ```
-## Reduce size
+### Reduce size
 Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
 
 ``` xml
@@ -157,8 +230,6 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
     <activity . . ./>
 </application>
 ```
-
-#### <a href="https://github.com/lincollincol/Amplituda/tree/master/example">Example app here</a>
 
 ## Download
 ### Gradle
@@ -171,7 +242,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:Amplituda:2.0.2'
+  implementation 'com.github.lincollincol:Amplituda:2.1.0'
 }
 ```
 
@@ -188,12 +259,12 @@ dependencies {
 <dependency>
   <groupId>com.github.lincollincol</groupId>
   <artifactId>Amplituda</artifactId>
-  <version>2.0.2</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
 ## Feedback
-<a href="https://mail.google.com">linc.apps.sup@gmail.com</a>
+<a href="https://mail.google.com">andriy.serb1@gmail.com</a>
 
 # License
 ```
