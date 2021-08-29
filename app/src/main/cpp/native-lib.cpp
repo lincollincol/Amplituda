@@ -103,26 +103,6 @@ static int decode_packet(
         if(dec->codec->type == AVMEDIA_TYPE_AUDIO) {
             double sum = 0;
 
-            AVDictionaryEntry* entry = av_dict_get(frame->metadata, "lavfi.astats.Overall.RMS_level", NULL, 0);
-            if(entry) {
-                __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", "------");
-                __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
-                                                                    "key: %s\n"
-                                                                    "val: %s\n",
-                                    entry->key, entry->value);
-            }
-
-//            AVDictionaryEntry *tag = av_dict_get(frame->metadata, "name", NULL, AV_DICT_MATCH_CASE);
-//            av_dict_get(frame->metadata, "key", NULL, 0)->value;
-
-            /*if (tag)
-            __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
-                                                                "key: %s\n"
-                                                                "val: %s\n",
-                                                                tag->key, tag->value
-            );*/
-
-//            frame->metadata
             for(int i = 0; i < frame->nb_samples; i++) {
                 double sample = getSample(audio_dec_ctx, frame->data[0], i);
                 sum += sample * sample;
@@ -222,10 +202,28 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
         jobject,
-        jstring audio_path
+        jstring audio_path,
+        jobject listener
 ) {
-    const char* input_audio = env->GetStringUTFChars(audio_path, 0);
     int ret = 0;
+
+    // Input audio meta
+    const char* input_audio = env->GetStringUTFChars(audio_path, 0);
+    int duration = 0;
+    int current_frame_idx = 0;
+    int nb_frames;
+    bool valid_listener = false;
+
+    // Listener
+    jmethodID on_progress_method;
+
+    // Init progress listener
+    if(listener != NULL) {
+        jclass listener_class = env->FindClass("linc/com/amplituda/callback/AmplitudaProgressListener");
+        on_progress_method = env->GetMethodID(listener_class, "onProgress", "(I)V");
+        env->DeleteLocalRef(listener_class);
+        valid_listener = true;
+    }
 
     // Return wrapper class
     jclass amplitudaResultClass = (env)->FindClass("linc/com/amplituda/AmplitudaResultJNI");
@@ -280,18 +278,19 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         goto end_cleanup;
     }
 
+    if(fmt_ctx->duration != AV_NOPTS_VALUE) {
+        duration = (int) (fmt_ctx->duration + 5000) / AV_TIME_BASE;
+    }
+
+    // audio_dec_ctx->channels
+    nb_frames = (1 * audio_dec_ctx->sample_rate * duration) / audio_dec_ctx->frame_size;
+
+    if(valid_listener) {
+        env->CallVoidMethod(listener, on_progress_method, nb_frames);
+    }
+
     // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
-        /*__android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
-                                                            "dts: %lld\n"
-                                                            "duration: %lld\n"
-                                                            "flags: %d\n"
-                                                            "pos: %lld\n"
-                                                            "pts: %lld\n"
-                                                            "size: %d\n"
-                                                            "side_data_elems: %d\n",
-                            pkt->dts,pkt->duration,pkt->flags,pkt->pos,pkt->pts,pkt->size,pkt->side_data_elems
-        );*/
 
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
@@ -301,6 +300,8 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         av_packet_unref(pkt);
         if (ret < 0)
             break;
+
+        current_frame_idx++;
     }
 
     // flush the decoders
@@ -336,9 +337,10 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     end_return:
 
     env->ReleaseStringUTFChars(audio_path, input_audio);
-
     (env)->SetObjectField(amplitudaResultReturnObject, amplitudes, (env)->NewStringUTF(amplitudes_data.c_str()));
     (env)->SetObjectField(amplitudaResultReturnObject, errors, (env)->NewStringUTF(errors_data.c_str()));
+
+    on_progress_method = NULL;
 
     return amplitudaResultReturnObject;
 }

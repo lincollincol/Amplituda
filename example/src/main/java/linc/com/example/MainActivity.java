@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
 //        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
         amplituda.processAudio("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")
+//        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3")
                 .get(result -> {
                     List<Integer> amplitudesData = result.amplitudesAsList();
                     List<Integer> amplitudesForFirstSecond = result.amplitudesForSecond(1);
@@ -40,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
                     String source = result.getAudioSource();
                     InputAudio.Type sourceType = result.getInputAudioType();
                     // etc
+                    //14585
+                    System.out.println("Data size: " + amplitudesData.size());
                 }, exception -> {
                     exception.printStackTrace();
                 });
