@@ -10,13 +10,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaResult;
 import linc.com.amplituda.InputAudio;
+import linc.com.amplituda.callback.AmplitudaSuccessListener;
 import linc.com.amplituda.exceptions.AmplitudaException;
+import linc.com.amplituda.exceptions.io.AmplitudaIOException;
+import linc.com.amplituda.exceptions.processing.AmplitudaProcessingException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,8 +31,18 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
 
-        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-                .get(this::printResult, Throwable::printStackTrace);
+//        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
+        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")
+                .get(result -> {
+                    List<Integer> amplitudesData = result.amplitudesAsList();
+                    List<Integer> amplitudesForFirstSecond = result.amplitudesForSecond(1);
+                    long duration = result.getAudioDuration(AmplitudaResult.DurationUnit.SECONDS);
+                    String source = result.getAudioSource();
+                    InputAudio.Type sourceType = result.getInputAudioType();
+                    // etc
+                }, exception -> {
+                    exception.printStackTrace();
+                });
 
     }
 
