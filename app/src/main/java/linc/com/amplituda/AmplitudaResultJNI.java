@@ -18,6 +18,7 @@ import linc.com.amplituda.exceptions.processing.CodecParametersException;
 import linc.com.amplituda.exceptions.processing.DecodingException;
 import linc.com.amplituda.exceptions.processing.InvalidParameterFlagException;
 import linc.com.amplituda.exceptions.processing.PacketSubmittingException;
+import linc.com.amplituda.exceptions.processing.SampleOutOfBoundsException;
 import linc.com.amplituda.exceptions.processing.SecondOutOfBoundsException;
 import linc.com.amplituda.exceptions.processing.StreamInformationNotFoundException;
 import linc.com.amplituda.exceptions.processing.StreamNotFoundException;
@@ -36,6 +37,7 @@ import static linc.com.amplituda.ErrorCode.INVALID_RAW_RESOURCE_IO_CODE;
 import static linc.com.amplituda.ErrorCode.NO_INPUT_FILE_IO_CODE;
 import static linc.com.amplituda.ErrorCode.PACKET_ALLOC_CODE;
 import static linc.com.amplituda.ErrorCode.PACKET_SUBMITTING_PROC_CODE;
+import static linc.com.amplituda.ErrorCode.SAMPLE_OUT_OF_BOUNDS_PROC_CODE;
 import static linc.com.amplituda.ErrorCode.SECOND_OUT_OF_BOUNDS_PROC_CODE;
 import static linc.com.amplituda.ErrorCode.STREAM_INFO_NOT_FOUND_PROC_CODE;
 import static linc.com.amplituda.ErrorCode.STREAM_NOT_FOUND_PROC_CODE;
@@ -85,6 +87,7 @@ final class AmplitudaResultJNI {
             case CODEC_OPEN_PROC_CODE:             return new CodecOpenException();
             case UNSUPPORTED_SAMPLE_FMT_PROC_CODE: return new UnsupportedSampleFormatException();
             case DECODING_PROC_CODE:               return new DecodingException();
+            case SAMPLE_OUT_OF_BOUNDS_PROC_CODE:   return new SampleOutOfBoundsException();
             default:                               return new AmplitudaException();
         }
     }

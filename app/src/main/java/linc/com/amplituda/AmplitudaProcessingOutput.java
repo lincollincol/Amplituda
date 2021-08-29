@@ -51,7 +51,7 @@ public final class AmplitudaProcessingOutput<T> {
      * Advantage: small output size
      * Disadvantage: output quality
      */
-    public AmplitudaProcessingOutput<T> compress(final int preferredSamplesPerSecond) {
+    /*public AmplitudaProcessingOutput<T> compress(final int preferredSamplesPerSecond) {
         List<Integer> data = amplitudaResult.amplitudesAsList();
 
         if(preferredSamplesPerSecond <= 0) {
@@ -92,7 +92,7 @@ public final class AmplitudaProcessingOutput<T> {
         amplitudaResult.setAmplitudes(compressed.toString());
         return this;
     }
-
+*/
     /**
      * Get Amplituda processing result. This function returns result in callback
      * @param successListener - success processing operation callback

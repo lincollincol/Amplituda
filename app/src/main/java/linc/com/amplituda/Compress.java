@@ -8,22 +8,22 @@ public final class Compress {
     public static final int AVERAGE = 3;
 
     private final int type;
-    private final int framesPerSecond;
+    private final int preferredSamplesPerSecond;
 
-    private Compress(final int type, final int framesPerSecond) {
+    private Compress(final int type, final int preferredSamplesPerSecond) {
         this.type = type;
-        this.framesPerSecond = framesPerSecond;
+        this.preferredSamplesPerSecond = preferredSamplesPerSecond;
     }
 
-    public static Compress params(final int type, final int framesPerSecond) {
-        return new Compress(type, framesPerSecond);
+    public static Compress withParams(final int type, final int preferredSamplesPerSecond) {
+        return new Compress(type, preferredSamplesPerSecond);
     }
 
     public int getType() {
         return type;
     }
 
-    public int getFramesPerSecond() {
-        return framesPerSecond;
+    public int getPreferredSamplesPerSecond() {
+        return preferredSamplesPerSecond;
     }
 }

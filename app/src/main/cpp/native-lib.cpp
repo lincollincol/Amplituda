@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <android/log.h>
 #include <string>
+#include <vector>
 #include "error_code.h"
 #include "compress_type.h"
 
@@ -21,6 +22,49 @@ static AVPacket *pkt = NULL;
 void add_error(std::string* errors, const int code) {
     *errors += std::to_string(code);
     *errors += " ";
+}
+
+void copy_temp_amplitudes_data(
+        std::vector<int>* temp_data,
+        std::string* amplitudes_result
+) {
+    for(int temp_sample : *temp_data) {
+        *amplitudes_result += std::to_string(temp_sample) + "\n";
+    }
+}
+
+std::string compress_temp_amplitudes_data(
+        std::vector<int>* temp_data,
+        const int* compress_type
+) {
+    std::string compress_result;
+
+    if(temp_data->empty())
+        return compress_result;
+
+    switch (*compress_type) {
+        case COMPRESS_SKIP: {
+            compress_result += std::to_string(temp_data->at(0));
+            break;
+        }
+        case COMPRESS_PEEK: {
+            std::sort(temp_data->begin(), temp_data->end());
+            compress_result += std::to_string(temp_data->at(0));
+            break;
+        }
+        case COMPRESS_AVERAGE: {
+            int sum = 0;
+
+            for(int temp_sample : *temp_data) {
+                sum += temp_sample;
+            }
+
+            compress_result += std::to_string( (int) (sum / temp_data->size()) );
+            break;
+        }
+    }
+    compress_result += "\n";
+    return compress_result;
 }
 
 double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
@@ -75,9 +119,10 @@ double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleInde
 static int decode_packet(
         AVCodecContext *dec,
         const AVPacket *pkt,
-        const int* compress_type,
-        const int* frames_per_second,
-        std::string* result,
+//        const int* compress_type,
+//        const int* frames_per_second,
+//        std::string* result,
+        std::vector<int>* temp_samples,
         std::string* errors
 ) {
     int ret = 0;
@@ -112,8 +157,10 @@ static int decode_packet(
                 sum += sample * sample;
             }
 
-            (*result) += std::to_string(((int)(sqrt(sum / frame->nb_samples) * 100)));
-            (*result) += "\n";
+            temp_samples->push_back(((int)(sqrt(sum / frame->nb_samples) * 100)));
+
+//            (*result) += std::to_string(((int)(sqrt(sum / frame->nb_samples) * 100)));
+//            (*result) += "\n";
 
         }
 
@@ -216,14 +263,12 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // input params
     const char* input_audio = env->GetStringUTFChars(jaudio_path, 0);
-    const int compress_type = (int) jcompress_type;
-    const int frames_per_second = (int) jframes_per_second;
+    const int preferred_frames_per_second = (int) jframes_per_second;
+    int compress_type = (int) jcompress_type;
 
-    // meta
-    int duration = 0;
-    int current_frame_idx = 0;
-    int current_progress = 0;
-    int nb_frames;
+    // meta and params
+    int duration = 0, current_frame_idx = 0, current_progress = 0;
+    int nb_frames, actual_frames_per_second, compression_divider;
     bool valid_listener = false;
 
     // listener method ref
@@ -248,8 +293,10 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // create wrapper object
     jobject amplitudaResultReturnObject = (env)->NewObject(amplitudaResultClass, constructor);
 
-    std::string amplitudes_data = "";
-    std::string errors_data = "";
+    // prepare result containers
+    std::vector<int> temp_data;
+    std::string amplitudes_data;
+    std::string errors_data;
 
     // open input file, and allocate format context
     if (avformat_open_input(&fmt_ctx, input_audio, NULL, NULL) < 0) {
@@ -297,21 +344,45 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // full formula: (channels * rate * duration [seconds]) / frame_size
     // amplituda case - 1 [channel] instead of audio_dec_ctx->channels
-    nb_frames = (1 * audio_dec_ctx->sample_rate * duration) / audio_dec_ctx->frame_size;
+    nb_frames = (audio_dec_ctx->sample_rate * duration) / audio_dec_ctx->frame_size;
+
+    // prepare compression params
+    actual_frames_per_second = nb_frames / duration;
+
+    // cannot compress to preferred frames per second
+    if(preferred_frames_per_second > actual_frames_per_second) {
+        add_error(&errors_data, SAMPLE_OUT_OF_BOUNDS_PROC_CODE);
+        compress_type = COMPRESS_NONE;
+    }
+
+    // no need to compress data
+    if(preferred_frames_per_second == actual_frames_per_second) {
+        compress_type = COMPRESS_NONE;
+    } else {
+        compression_divider = actual_frames_per_second / preferred_frames_per_second;
+        // max compression - x2
+        if(compression_divider < 2) {
+            compression_divider = 2;
+        }
+    }
 
     // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
 
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (pkt->stream_index == audio_stream_idx) {
-            ret = decode_packet(
-                    audio_dec_ctx,
-                    pkt,
-                    &compress_type,
-                    &frames_per_second,
-                    &amplitudes_data,
-                    &errors_data
-            );
+            ret = decode_packet(audio_dec_ctx, pkt, &temp_data, &errors_data);
+
+            // compress data when current_frame_idx is compression_divider
+            if(compress_type != COMPRESS_NONE && current_frame_idx % compression_divider == 0) {
+                amplitudes_data += compress_temp_amplitudes_data(&temp_data, &compress_type);
+                temp_data.clear();
+            }
+
+            if(compress_type == COMPRESS_NONE) {
+                copy_temp_amplitudes_data(&temp_data, &amplitudes_data);
+                temp_data.clear();
+            }
         }
 
         av_packet_unref(pkt);
@@ -320,7 +391,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
         // update progress listener
         if(valid_listener) {
-            int progress = (100 * current_frame_idx) / nb_frames;
+            int progress = (current_frame_idx * 100) / nb_frames;
             if(current_progress != progress) {
                 env->CallVoidMethod(jlistener, on_progress_method, progress);
                 current_progress = progress;
@@ -331,14 +402,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // flush the decoders
     if (audio_dec_ctx) {
-        decode_packet(
-                audio_dec_ctx,
-                NULL,
-                &compress_type,
-                &frames_per_second,
-                &amplitudes_data,
-                &errors_data
-        );
+        decode_packet(audio_dec_ctx, NULL, &temp_data, &errors_data);
     }
 
     if (audio_stream) {
@@ -358,7 +422,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         }
     }
 
-    // Release ffmpeg data
+    // release ffmpeg data
     end_cleanup:
 
     avcodec_free_context(&audio_dec_ctx);
@@ -366,7 +430,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     av_packet_free(&pkt);
     av_frame_free(&frame);
 
-    // Return without ffmpeg release
+    // return without ffmpeg release
     end_return:
 
     env->ReleaseStringUTFChars(jaudio_path, input_audio);

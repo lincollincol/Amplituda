@@ -56,7 +56,7 @@ public final class Amplituda {
         AmplitudaResultJNI result = amplitudesFromAudioJNI(
                 audio.getPath(),
                 compress == null ? Compress.NONE : compress.getType(),
-                compress == null ? Compress.NONE : compress.getFramesPerSecond(),
+                compress == null ? Compress.NONE : compress.getPreferredSamplesPerSecond(),
                 listener
         );
 
@@ -185,7 +185,7 @@ public final class Amplituda {
     }
 
     public AmplitudaProcessingOutput<String> processAudio(final String audio) {
-        return processAudio(audio, Compress.params(Compress.AVERAGE, 1), new AmplitudaProgressListener() {
+        return processAudio(audio, Compress.withParams(Compress.AVERAGE, 50), new AmplitudaProgressListener() {
             @Override
             public void onProgress(int percent) {
                 System.out.println("On progress: " + percent);

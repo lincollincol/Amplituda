@@ -6,16 +6,9 @@ import static linc.com.amplituda.ErrorCode.SAMPLE_OUT_OF_BOUNDS_PROC_CODE;
 
 public final class SampleOutOfBoundsException extends AmplitudaProcessingException {
 
-    public SampleOutOfBoundsException(int aps, int sps) {
-        super(String.format(
-                Locale.getDefault(),
-                "Sample out of bound. Current max samples per second: %d. Preferred samples per second: %d", aps, sps),
+    public SampleOutOfBoundsException() {
+        super("Sample out of bound. Check `Compress` parameter: preferredSamplesPerSecond.",
                 SAMPLE_OUT_OF_BOUNDS_PROC_CODE
         );
     }
-
-    public SampleOutOfBoundsException() {
-        this(0, 0);
-    }
-
 }
