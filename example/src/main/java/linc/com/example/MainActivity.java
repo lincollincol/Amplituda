@@ -16,6 +16,7 @@ import java.util.Locale;
 import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaResult;
+import linc.com.amplituda.Compress;
 import linc.com.amplituda.InputAudio;
 import linc.com.amplituda.callback.AmplitudaSuccessListener;
 import linc.com.amplituda.exceptions.AmplitudaException;
@@ -30,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Amplituda amplituda = new Amplituda(this);
+
+        Compress c = Compress.params(Compress.AVERAGE, 1);
 
 //        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
         amplituda.processAudio("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")

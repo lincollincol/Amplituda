@@ -35,6 +35,7 @@ public final class Amplituda {
     private synchronized <T> AmplitudaResultJNI processFileJNI(
             final File audio,
             final InputAudio<T> inputAudio,
+            final Compress compress,
             final AmplitudaProgressListener listener
     ) throws AmplitudaException {
         // Process audio
@@ -46,11 +47,18 @@ public final class Amplituda {
             throw new FileOpenException();
         }
 
+        // TODO: 29.08.21 check for Compress params
+
         // Save start time
         long startTime = System.currentTimeMillis();
 
         // Process input audio
-        AmplitudaResultJNI result = amplitudesFromAudioJNI(audio.getPath(), listener);
+        AmplitudaResultJNI result = amplitudesFromAudioJNI(
+                audio.getPath(),
+                compress == null ? Compress.NONE : compress.getType(),
+                compress == null ? Compress.NONE : compress.getFramesPerSecond(),
+                listener
+        );
 
         // Save audio duration when file is valid and was processed
         inputAudio.setDuration(fileManager.getAudioDuration(audio.getPath()));
@@ -62,11 +70,15 @@ public final class Amplituda {
 
     public AmplitudaProcessingOutput<File> processAudio(
             final File audio,
+            final Compress compress,
             final AmplitudaProgressListener listener
     ) {
         InputAudio<File> inputAudio = new InputAudio<>(audio, InputAudio.Type.FILE);
         try {
-            return new AmplitudaProcessingOutput<>(processFileJNI(audio, inputAudio, listener), inputAudio);
+            return new AmplitudaProcessingOutput<>(
+                    processFileJNI(audio, inputAudio, compress, listener),
+                    inputAudio
+            );
         } catch (AmplitudaException exception) {
             // Handle processing error
             return new AmplitudaProcessingOutput<>(exception, inputAudio);
@@ -79,6 +91,7 @@ public final class Amplituda {
      */
     public AmplitudaProcessingOutput<String> processAudio(
             final String audio,
+            final Compress compress,
             final AmplitudaProgressListener listener
     ) {
         InputAudio<String> inputAudio = new InputAudio<>(audio);
@@ -88,7 +101,7 @@ public final class Amplituda {
             if(!URLUtil.isValidUrl(audio)) {
                 inputAudio.setType(InputAudio.Type.PATH);
                 return new AmplitudaProcessingOutput<>(
-                        processFileJNI(new File(audio), inputAudio, listener),
+                        processFileJNI(new File(audio), inputAudio, compress, listener),
                         inputAudio
                 );
             }
@@ -113,7 +126,7 @@ public final class Amplituda {
             AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PREPARING, startTime);
 
             // Process local audio
-            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio, listener);
+            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio, compress, listener);
 
             // Remove tmp file
             fileManager.deleteFile(tempAudio);
@@ -131,6 +144,7 @@ public final class Amplituda {
      */
     public AmplitudaProcessingOutput<Integer> processAudio(
             final int audio,
+            final Compress compress,
             final AmplitudaProgressListener listener
     ) {
         InputAudio<Integer> inputAudio = new InputAudio<>(audio, InputAudio.Type.RESOURCE);
@@ -154,7 +168,7 @@ public final class Amplituda {
 
         try {
             // Process local raw file
-            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio, listener);
+            AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio, compress, listener);
 
             // Delete tmp
             fileManager.deleteFile(tempAudio);
@@ -167,20 +181,20 @@ public final class Amplituda {
     }
 
     public AmplitudaProcessingOutput<File> processAudio(final File audio) {
-        return processAudio(audio, null);
+        return processAudio(audio, null, null);
     }
 
     public AmplitudaProcessingOutput<String> processAudio(final String audio) {
-        return processAudio(audio, new AmplitudaProgressListener() {
+        return processAudio(audio, Compress.params(Compress.AVERAGE, 1), new AmplitudaProgressListener() {
             @Override
             public void onProgress(int percent) {
-                System.out.println("On NDK progress: " + percent);
+                System.out.println("On progress: " + percent);
             }
         });
     }
 
     public AmplitudaProcessingOutput<Integer> processAudio(final int audio) {
-        return processAudio(audio, null);
+        return processAudio(audio, null, null);
     }
 
     /**
@@ -193,6 +207,8 @@ public final class Amplituda {
 //    native AmplitudaResultJNI amplitudesFromAudioJNI(String pathToAudio);
     native AmplitudaResultJNI amplitudesFromAudioJNI(
             String pathToAudio,
+            int compressType,
+            int framesPerSecond,
             AmplitudaProgressListener listener
     );
 

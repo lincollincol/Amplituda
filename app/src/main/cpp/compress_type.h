@@ -1,0 +1,13 @@
+//
+// Created by linc on 29.08.21.
+//
+
+#ifndef AMPLITUDA_COMPRESS_TYPE_H
+#define AMPLITUDA_COMPRESS_TYPE_H
+
+#define COMPRESS_NONE 0
+#define COMPRESS_SKIP 1
+#define COMPRESS_PEEK 2
+#define COMPRESS_AVERAGE 3
+
+#endif //AMPLITUDA_COMPRESS_TYPE_H
