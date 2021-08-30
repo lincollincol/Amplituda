@@ -267,8 +267,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     int compress_type = (int) jcompress_type;
 
     // meta and params
-    int duration = 0, current_frame_idx = 0, current_progress = 0;
+    int current_frame_idx = 0, current_progress = 0;
     int nb_frames, actual_frames_per_second, compression_divider;
+    double duration;
     bool valid_listener = false;
 
     // listener method ref
@@ -287,8 +288,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     jmethodID constructor = (env)->GetMethodID(amplitudaResultClass, "<init>", "()V");
 
     // wrapper fields
-    jfieldID amplitudes = (env)->GetFieldID(amplitudaResultClass, "amplitudes", "Ljava/lang/String;");
-    jfieldID errors = (env)->GetFieldID(amplitudaResultClass, "errors", "Ljava/lang/String;");
+    jfieldID duration_field = (env)->GetFieldID(amplitudaResultClass, "duration", "D");
+    jfieldID amplitudes_field = (env)->GetFieldID(amplitudaResultClass, "amplitudes", "Ljava/lang/String;");
+    jfieldID errors_field = (env)->GetFieldID(amplitudaResultClass, "errors", "Ljava/lang/String;");
 
     // create wrapper object
     jobject amplitudaResultReturnObject = (env)->NewObject(amplitudaResultClass, constructor);
@@ -338,16 +340,29 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     }
 
     // prepare duration from time base to seconds
-    if(fmt_ctx->duration != AV_NOPTS_VALUE) {
+    duration = fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q);
+    /*if(fmt_ctx->duration != AV_NOPTS_VALUE) {
         duration = (int) (fmt_ctx->duration + 5000) / AV_TIME_BASE;
-    }
+    }*/
 
     // full formula: (channels * rate * duration [seconds]) / frame_size
     // amplituda case - 1 [channel] instead of audio_dec_ctx->channels
-    nb_frames = (audio_dec_ctx->sample_rate * duration) / audio_dec_ctx->frame_size;
+    nb_frames = (audio_dec_ctx->sample_rate * (int) duration) / audio_dec_ctx->frame_size;
+
+    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
+        "sample rate = %d\n"
+        "frame size = %d\n"
+        "fmt duration = %f\n"
+        "duration = %f\n",
+        audio_dec_ctx->sample_rate,
+        audio_dec_ctx->frame_size,
+        (fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q)),
+        duration
+    );
+
 
     // prepare compression params
-    actual_frames_per_second = nb_frames / duration;
+    actual_frames_per_second = (int) (nb_frames / duration);
 
     // cannot compress to preferred frames per second
     if(preferred_frames_per_second > actual_frames_per_second) {
@@ -392,7 +407,16 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         // update progress listener
         if(valid_listener) {
             int progress = (current_frame_idx * 100) / nb_frames;
+
             if(current_progress != progress) {
+                /*__android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
+                    "current idx = %d\n"
+                    "frames = %d\n"
+                    "progress = %d\n",
+                    current_frame_idx,
+                    nb_frames,
+                    progress
+                );*/
                 env->CallVoidMethod(jlistener, on_progress_method, progress);
                 current_progress = progress;
             }
@@ -434,8 +458,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     end_return:
 
     env->ReleaseStringUTFChars(jaudio_path, input_audio);
-    (env)->SetObjectField(amplitudaResultReturnObject, amplitudes, (env)->NewStringUTF(amplitudes_data.c_str()));
-    (env)->SetObjectField(amplitudaResultReturnObject, errors, (env)->NewStringUTF(errors_data.c_str()));
+    (env)->SetDoubleField(amplitudaResultReturnObject, duration_field, duration);
+    (env)->SetObjectField(amplitudaResultReturnObject, amplitudes_field, (env)->NewStringUTF(amplitudes_data.c_str()));
+    (env)->SetObjectField(amplitudaResultReturnObject, errors_field, (env)->NewStringUTF(errors_data.c_str()));
 
     on_progress_method = NULL;
 

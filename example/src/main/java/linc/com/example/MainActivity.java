@@ -3,6 +3,7 @@ package linc.com.example;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -18,6 +19,23 @@ import linc.com.amplituda.InputAudio;
 
 public class MainActivity extends AppCompatActivity {
 
+    /*
+
+    E/AMPLITUDA: current idx = 398532
+    frames = 40875
+    progress = 975
+I/System.out: On progress: 975
+E/AMPLITUDA: Processing time: 39,3110 seconds
+I/System.out: Duration: 9571
+    Data size: 398822
+
+    -- kygo
+     */
+
+    // TODO: big data test
+    // TODO: multithreading test
+    // TODO: amplitudesPerSecond refactor
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,11 +43,14 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
 
+        amplituda.setLogConfig(Log.ERROR, true);
+
         Compress c = Compress.withParams(Compress.AVERAGE, 1);
 
+//        amplituda.processAudio("/storage/emulated/0/Music/set.mp3")
 //        amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-//        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")
-        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3")
+        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3")
+//        amplituda.processAudio("/storage/9016-4EF8/MUSIC/Kygo - Broken Glass.mp3")
                 .get(result -> {
                     List<Integer> amplitudesData = result.amplitudesAsList();
 //                    List<Integer> amplitudesForFirstSecond = result.amplitudesForSecond(1);
@@ -40,14 +61,14 @@ public class MainActivity extends AppCompatActivity {
                     //14585
                     System.out.println("Duration: " + duration);
                     System.out.println("Data size: " + amplitudesData.size());
-                    try {
+                    /*try {
                         FileWriter fw = new FileWriter(new File("/storage/emulated/0/Music/amps.txt"));
                         fw.write(result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.NEW_LINE));
                         fw.flush();
                         fw.close();
                     } catch (IOException e) {
                         e.printStackTrace();
-                    }
+                    }*/
                 }, exception -> {
                     exception.printStackTrace();
                 });

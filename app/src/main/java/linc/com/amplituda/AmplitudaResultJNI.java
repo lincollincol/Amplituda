@@ -45,8 +45,16 @@ import static linc.com.amplituda.ErrorCode.UNSUPPORTED_SAMPLE_FMT_PROC_CODE;
 
 final class AmplitudaResultJNI {
 
+    private double duration;
     private String amplitudes;
     private String errors;
+
+    /**
+     * Get audio duration
+     */
+    long getDurationMillis() {
+        return (long) (duration * 1000);
+    }
 
     /**
      * Get ndk processing result

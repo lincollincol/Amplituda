@@ -61,7 +61,7 @@ public final class Amplituda {
         );
 
         // Save audio duration when file is valid and was processed
-        inputAudio.setDuration(fileManager.getAudioDuration(audio.getPath()));
+        inputAudio.setDuration(result.getDurationMillis());
 
         // Log operation time
         AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PROCESSING, startTime);
@@ -185,7 +185,7 @@ public final class Amplituda {
     }
 
     public AmplitudaProcessingOutput<String> processAudio(final String audio) {
-        return processAudio(audio, Compress.withParams(Compress.AVERAGE, 50), new AmplitudaProgressListener() {
+        return processAudio(audio, Compress.withParams(Compress.AVERAGE, 1), new AmplitudaProgressListener() {
             @Override
             public void onProgress(int percent) {
                 System.out.println("On progress: " + percent);
