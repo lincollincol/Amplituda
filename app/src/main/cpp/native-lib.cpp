@@ -269,7 +269,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // meta and params
     int current_frame_idx = 0, current_progress = 0;
     int nb_frames, actual_frames_per_second, compression_divider;
-    double duration;
+    double duration = 0.0;
     bool valid_listener = false;
 
     // listener method ref
@@ -277,8 +277,10 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // init progress listener
     if(jlistener != NULL) {
-        jclass listener_class = env->FindClass("linc/com/amplituda/callback/AmplitudaProgressListener");
-        on_progress_method = env->GetMethodID(listener_class, "onProgress", "(I)V");
+//        jclass listener_class = env->FindClass("linc/com/amplituda/callback/AmplitudaProgressListener");
+//        on_progress_method = env->GetMethodID(listener_class, "onProgress", "(I)V");
+        jclass listener_class = env->FindClass("linc/com/amplituda/AmplitudaProgressListener");
+        on_progress_method = env->GetMethodID(listener_class, "onProgressInternal", "(I)V");
         env->DeleteLocalRef(listener_class);
         valid_listener = true;
     }
@@ -349,23 +351,31 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // amplituda case - 1 [channel] instead of audio_dec_ctx->channels
     nb_frames = (audio_dec_ctx->sample_rate * (int) duration) / audio_dec_ctx->frame_size;
 
-    __android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
+    /*__android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
         "sample rate = %d\n"
         "frame size = %d\n"
+        "stream codec_info_nb_frames = %d\n"
+        "stream codecpar->frame_size = %d\n"
         "fmt duration = %f\n"
         "duration = %f\n",
         audio_dec_ctx->sample_rate,
         audio_dec_ctx->frame_size,
+        audio_stream->codec_info_nb_frames,
+        audio_stream->codecpar->frame_size,
         (fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q)),
         duration
-    );
-
+    );*/
 
     // prepare compression params
     actual_frames_per_second = (int) (nb_frames / duration);
 
+    // cannot compress this audio data
+    if(nb_frames == 0) {
+        compress_type = COMPRESS_NONE;
+    }
+
     // cannot compress to preferred frames per second
-    if(preferred_frames_per_second > actual_frames_per_second) {
+    if(preferred_frames_per_second > actual_frames_per_second && actual_frames_per_second > 0) {
         add_error(&errors_data, SAMPLE_OUT_OF_BOUNDS_PROC_CODE);
         compress_type = COMPRESS_NONE;
     }
@@ -409,19 +419,16 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
             int progress = (current_frame_idx * 100) / nb_frames;
 
             if(current_progress != progress) {
-                /*__android_log_print(ANDROID_LOG_ERROR, "AMPLITUDA", ""
-                    "current idx = %d\n"
-                    "frames = %d\n"
-                    "progress = %d\n",
-                    current_frame_idx,
-                    nb_frames,
-                    progress
-                );*/
                 env->CallVoidMethod(jlistener, on_progress_method, progress);
                 current_progress = progress;
             }
         }
         current_frame_idx++;
+    }
+
+    // make one last progress listener call
+    if(valid_listener && current_progress == 0) {
+        env->CallVoidMethod(jlistener, on_progress_method, 100);
     }
 
     // flush the decoders
