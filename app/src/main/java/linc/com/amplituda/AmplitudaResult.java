@@ -4,6 +4,7 @@ import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -110,6 +111,27 @@ public final class AmplitudaResult<T> {
      * Extracts list of amplitudes per specific second
      * @param second - specific second from input file
      */
+    /*public List<Integer> amplitudesForSecond(final int second) {
+        List<Integer> data = amplitudesAsList();
+        final int duration = (int) getAudioDuration(DurationUnit.SECONDS);
+        final int aps = (data.size() / duration); // amplitudes per second
+
+        if(second > duration) {
+            return Collections.emptyList();
+        }
+
+        int index = (second * data.size()) / duration;
+
+        List<Integer> amplitudesForSecond = new ArrayList<>();
+
+        for(int i = index; i > index - aps; i--) {
+            if(i < 0 || i >= data.size())
+                break;
+            amplitudesForSecond.add(data.get(i));
+        }
+        Collections.reverse(amplitudesForSecond);
+        return amplitudesForSecond;
+    }*/
     public List<Integer> amplitudesForSecond(final int second) {
         List<Integer> data = amplitudesAsList();
 

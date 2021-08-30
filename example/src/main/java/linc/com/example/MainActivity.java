@@ -19,19 +19,6 @@ import linc.com.amplituda.AmplitudaProgressListener;
 
 public class MainActivity extends AppCompatActivity {
 
-    /*
-
-    E/AMPLITUDA: current idx = 398532
-    frames = 40875
-    progress = 975
-I/System.out: On progress: 975
-E/AMPLITUDA: Processing time: 39,3110 seconds
-I/System.out: Duration: 9571
-    Data size: 398822
-
-    -- kygo
-     */
-
     // TODO: big data test
     // TODO: multithreading test
     // TODO: amplitudesPerSecond refactor
@@ -45,7 +32,7 @@ I/System.out: Duration: 9571
 
         amplituda.setLogConfig(Log.ERROR, true);
 
-        Compress c = Compress.withParams(Compress.AVERAGE, 1);
+        Compress c = Compress.withParams(Compress.AVERAGE, 2);
 
 
 //        amplituda.processAudio("/storage/emulated/0/Music/set.mp3")
@@ -57,12 +44,12 @@ I/System.out: Duration: 9571
             public void run() {
                 amplituda.processAudio(
 //                        R.raw.kygo,
-                        "/storage/9016-4EF8/MUSIC/Hosini - Froozen.mp3",
+                        "/storage/emulated/0/Music/set.mp3",
                         Compress.withParams(Compress.AVERAGE, 1),
                         new AmplitudaProgressListener() {
                             @Override
                             public void onProgress(ProgressOperation operation, int progress) {
-                                System.out.println("Operation " + operation.name() + " progress " + progress);
+//                                System.out.println("Operation " + operation.name() + " progress " + progress);
                             }
 
                             @Override
@@ -79,7 +66,15 @@ I/System.out: Duration: 9571
                         }
                 ).get(result -> {
                     List<Integer> amplitudesData = result.amplitudesAsList();
+                    long duration = result.getAudioDuration(AmplitudaResult.DurationUnit.SECONDS);
+                    System.out.println("Duration: " + duration);
                     System.out.println("Data size: " + amplitudesData.size());
+
+                    for(int i = 0; i <= duration; i++) {
+//                        System.out.printf("Amplitudes for sec %d = %s %n", i, Arrays.toString(result.amplitudesForSecond(i).toArray()));
+                        result.amplitudesForSecond(i);
+                    }
+
                 }, exception -> {
                     exception.printStackTrace();
                 });
