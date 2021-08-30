@@ -111,7 +111,7 @@ public final class AmplitudaResult<T> {
      * Extracts list of amplitudes per specific second
      * @param second - specific second from input file
      */
-    /*public List<Integer> amplitudesForSecond(final int second) {
+    public List<Integer> amplitudesForSecond(final int second) {
         List<Integer> data = amplitudesAsList();
         final int duration = (int) getAudioDuration(DurationUnit.SECONDS);
         final int aps = (data.size() / duration); // amplitudes per second
@@ -131,37 +131,6 @@ public final class AmplitudaResult<T> {
         }
         Collections.reverse(amplitudesForSecond);
         return amplitudesForSecond;
-    }*/
-    public List<Integer> amplitudesForSecond(final int second) {
-        List<Integer> data = amplitudesAsList();
-
-        final int duration = (int) getAudioDuration(DurationUnit.SECONDS);
-        final int aps = data.size() / duration; // amplitudes per second
-
-        // Use second as a map key
-        int currentSecond = 0;
-
-        // Map with format = Map<Second, Amplitudes>
-        Map<Integer, List<Integer>> amplitudes = new LinkedHashMap<>();
-
-        // Temporary amplitudes list
-        List<Integer> amplitudesPerSecond = new ArrayList<>();
-
-        for(int sampleIndex = 0; sampleIndex < data.size(); sampleIndex++) {
-            if(sampleIndex % aps == 0) { // Save all amplitudes when current frame index equals to aps
-                // Save amplitudes to map
-                amplitudes.put(currentSecond, new ArrayList<>(amplitudesPerSecond));
-                // Clear temporary amplitudes
-                amplitudesPerSecond.clear();
-                // Increase current second
-                currentSecond++;
-            } else {
-                // Add amplitude to temporary list
-                amplitudesPerSecond.add(data.get(sampleIndex));
-            }
-        }
-
-        return amplitudes.get(second);
     }
 
     /**
