@@ -31,7 +31,6 @@ Amplituda amplituda = new Amplituda(context);
 
 /* Step 2: process audio and handle result */
 amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
-        .compress(1) // Optional call. Parameter `1` means that you want 1 amplitude per second
         .get(result -> {
             List<Integer> amplitudesData = result.amplitudesAsList();
             List<Integer> amplitudesForFirstSecond = result.amplitudesForSecond(1);
@@ -48,6 +47,20 @@ amplituda.processAudio("/storage/emulated/0/Music/Linc - Amplituda.mp3")
 /* And that's all! You can read full documentation below for more information about Amplituda features */
 
 ``` 
+
+## Download
+``` groovy
+allprojects {
+  repositories {
+    maven { url 'https://jitpack.io' }
+  }
+}
+```
+``` groovy
+dependencies {
+  implementation 'com.github.lincollincol:amplituda:2.1.1'
+}
+```
 
 ### Full documentation 
 #### • Process audio
@@ -76,16 +89,75 @@ processingOutput = amplituda.processAudio("https://audio-url-example.com/amplitu
 // Resource audio
 processingOutput = amplituda.processAudio(R.raw.amplituda);
 
+```
+#### • Compress output data
+``` java
 /** 
  * Compress result data (optional)
  * The output data can contain a lot of samples. 
  * For example: 
  *  - 5-second audio can contain 100+ samples
  *  - 3-minute audio can contain 7000+ samples
- * You can call compress() and pass the number of preferred samples per second as a parameter.
- */
-processingOutput.compress(1);
+ * You can pass `Compress` params with the number of 
+ * preferred samples per second and compress type as a parameter.
+ * Compress types:
+ * - Compress.SKIP    - take first number of `preferredSamplesPerSecond` and skip others 
+ * - Compress.PEEK    - take peek number of `preferredSamplesPerSecond` and skip others
+ * - Compress.AVERAGE - merge all samples to number of `preferredSamplesPerSecond`
+ */ 
+ 
+// Example: input audio duration - 10 seconds
+ 
+amplituda.processAudio(<audio>, Compress.withParams(Compress.AVERAGE, 1));
+// Output: data with 1 sample per 1 second. 
+// Approximate output data size - 60 [duration] * 1 [preferredSamplePerSecond] = 60 [samples]
 
+amplituda.processAudio(<audio>, Compress.withParams(Compress.AVERAGE, 5));
+// Output: data with 5 sample per 1 second
+// Approximate output data size - 60 [duration] * 5 [preferredSamplePerSecond] = 300 [samples]
+```
+
+#### • Handle progress
+``` java
+/**
+ * AmplitudaProgressListener - progress listener class.
+ * This class has 3 methods that describe current progress:
+ *  - void onStartProgress() - amplituda start processing (optional)
+ *  - void onStopProgress()  - amplituda stop processing (optional)
+ *  - void onProgress(ProgressOperation operation, int progress) -
+ *       amplituda process audio and share current operation and progress in percent (0-100)
+ * onProgress() also inform about current operation:
+ *  - PROCESSING  - amplituda start process audio
+ *  - DECODING    - amplituda decode raw/res audio 
+ *  - DOWNLOADING - amplituda download audio from url 
+ */
+amplituda.processAudio(
+    <audio>,
+    new AmplitudaProgressListener() {
+        @Override
+        public void onStartProgress() {
+            super.onStartProgress();
+            System.out.println("Start Progress");
+        }
+
+        @Override
+        public void onStopProgress() {
+            super.onStopProgress();
+            System.out.println("Stop Progress");
+        }
+
+        @Override
+        public void onProgress(ProgressOperation operation, int progress) {
+            String currentOperation = "";
+            switch (operation) {
+                case PROCESSING: currentOperation = "Process audio"; break;
+                case DECODING: currentOperation = "Decode resource"; break;
+                case DOWNLOADING: currentOperation = "Download audio from url"; break;
+            }
+            System.out.printf("%s: %d%% %n", currentOperation, progress);
+        }
+    }
+)
 ```
 
 #### • Handle result and errors
@@ -230,39 +302,6 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
     <activity . . ./>
 </application>
 ```
-
-## Download
-### Gradle
-``` groovy
-allprojects {
-  repositories {
-    maven { url 'https://jitpack.io' }
-  }
-}
-```
-``` groovy
-dependencies {
-  implementation 'com.github.lincollincol:Amplituda:2.1.0'
-}
-```
-
-### Maven
-``` xml
-<repositories>
-  <repository>
-    <id>jitpack.io</id>
-    <url>https://jitpack.io</url>
-  </repository>
-</repositories>
-```
-``` xml
-<dependency>
-  <groupId>com.github.lincollincol</groupId>
-  <artifactId>Amplituda</artifactId>
-  <version>2.1.0</version>
-</dependency>
-```
-
 ## Feedback
 <a href="https://mail.google.com">andriy.serb1@gmail.com</a>
 
