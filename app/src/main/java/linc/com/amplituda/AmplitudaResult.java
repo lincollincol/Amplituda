@@ -12,7 +12,7 @@ import java.util.Map;
 
 public final class AmplitudaResult<T> {
 
-    private String amplitudes;
+    private final String amplitudes;
     private final InputAudio<T> inputAudio;
 
     AmplitudaResult(
@@ -114,11 +114,13 @@ public final class AmplitudaResult<T> {
     public List<Integer> amplitudesForSecond(final int second) {
         List<Integer> data = amplitudesAsList();
         final int duration = (int) getAudioDuration(DurationUnit.SECONDS);
-        final int aps = (data.size() / duration); // amplitudes per second
 
-        if(second > duration) {
+        if(second > duration || duration == 0) {
             return Collections.emptyList();
         }
+
+        // amplitudes per second
+        final int aps = (data.size() / duration);
 
         int index = (second * data.size()) / duration;
 
@@ -142,14 +144,6 @@ public final class AmplitudaResult<T> {
     private String amplitudesToSingleLineSequence(final String amplitudes, final String delimiter) {
         String[] log = amplitudes.split("\n");
         return TextUtils.join(delimiter, log);
-    }
-
-    /**
-     * Update amplitudes data
-     * Call only from internal compress()
-     */
-    void setAmplitudes(final String amplitudes) {
-        this.amplitudes = amplitudes;
     }
 
     public enum  DurationUnit {

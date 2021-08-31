@@ -2,11 +2,13 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Build;
 import android.os.Bundle;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProgressListener;
@@ -31,16 +33,24 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onStartProgress() {
                         super.onStartProgress();
+                        System.out.println("Start Progress");
                     }
 
                     @Override
                     public void onStopProgress() {
                         super.onStopProgress();
+                        System.out.println("Stop Progress");
                     }
 
                     @Override
                     public void onProgress(ProgressOperation operation, int progress) {
-
+                        String currentOperation = "";
+                        switch (operation) {
+                            case PROCESSING: currentOperation = "Process audio"; break;
+                            case DECODING: currentOperation = "Decode resource"; break;
+                            case DOWNLOADING: currentOperation = "Download audio from url"; break;
+                        }
+                        System.out.printf("%s: %d%% %n", currentOperation, progress);
                     }
                 }
         ).get(result -> { printResult(result);
@@ -57,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
                         "Amplitudes:\n" +
                         "size: = %d\n" +
                         "list: = %s\n" +
+                        "amplitudes for second 1: = %s\n" +
                         "json: = %s\n" +
                         "single line sequence = %s\n" +
                         "new line sequence = %s\n" +
@@ -67,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
                 result.getInputAudioType().name(),
                 result.amplitudesAsList().size(),
                 Arrays.toString(result.amplitudesAsList().toArray()),
+                Arrays.toString(result.amplitudesForSecond(1).toArray()),
                 result.amplitudesAsJson(),
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE),
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.NEW_LINE),

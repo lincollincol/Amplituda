@@ -199,7 +199,7 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param audio - source file
      */
-    private synchronized <T> AmplitudaResultJNI processFileJNI(
+    private <T> AmplitudaResultJNI processFileJNI(
             final File audio,
             final InputAudio<T> inputAudio,
             final Compress compress,
@@ -238,7 +238,7 @@ public final class Amplituda {
         return result;
     }
 
-    private <T> AmplitudaProcessingOutput<T> errorOutput(
+    private synchronized <T> AmplitudaProcessingOutput<T> errorOutput(
             final AmplitudaException exception,
             final InputAudio<T> inputAudio,
             final AmplitudaProgressListener listener
@@ -247,19 +247,19 @@ public final class Amplituda {
         return new AmplitudaProcessingOutput<T>(exception, inputAudio);
     }
 
-    private void stopProgress(final AmplitudaProgressListener listener) {
+    private synchronized void stopProgress(final AmplitudaProgressListener listener) {
         if(listener != null) {
             listener.onStopProgress();
         }
     }
 
-    private void startProgress(final AmplitudaProgressListener listener) {
+    private synchronized void startProgress(final AmplitudaProgressListener listener) {
         if(listener != null) {
             listener.onStartProgress();
         }
     }
 
-    private void updateProgressOperation(
+    private synchronized void updateProgressOperation(
             final AmplitudaProgressListener listener,
             final ProgressOperation operation
     ) {

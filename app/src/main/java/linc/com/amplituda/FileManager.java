@@ -30,37 +30,29 @@ final class FileManager {
     }
 
     /**
-     * Delete local storage file
-     */
-    synchronized void deleteFile(final File file) {
-        if(file != null && file.exists()) {
-            file.delete();
-        }
-    }
-
-    /**
      * Validate audio file
      * @param path - audio file path
      * @return true when file with path is audio file.
      */
     synchronized boolean isAudioFile(final String path) {
         try {
-            getAudioDuration(path);
-            return true;
+            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+            mediaMetadataRetriever.setDataSource(path);
+            return mediaMetadataRetriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO
+            ).equalsIgnoreCase("yes");
         } catch (Exception ignored) {
             return false;
         }
     }
 
     /**
-     * Get duration from audio file in seconds
+     * Delete local storage file
      */
-    synchronized long getAudioDuration(final String path) {
-        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-        mediaMetadataRetriever.setDataSource(path);
-        return Long.parseLong(mediaMetadataRetriever.extractMetadata(
-                MediaMetadataRetriever.METADATA_KEY_DURATION
-        ));
+    synchronized void deleteFile(final File file) {
+        if(file != null && file.exists()) {
+            file.delete();
+        }
     }
 
     /**
@@ -73,7 +65,8 @@ final class FileManager {
         try {
             InputStream inputStream = resources.openRawResource(resource);
             streamToFile(inputStream, temp, 1024 * 4, inputStream.available(), listener);
-            return guessAudioExtension(temp);
+            return temp;
+//            return guessAudioExtension(temp);
         } catch (Resources.NotFoundException | IOException ignored) {
             return null;
         }
@@ -165,37 +158,5 @@ final class FileManager {
         } catch (Exception ignored) {
         }
         return -1L;
-    }
-
-    /**
-     * Copy audio from URL to local storage
-     * @param inputAudio - audio file without extension
-     * @return null or audio file with valid extension
-     */
-    private synchronized File guessAudioExtension(final File inputAudio) {
-        if(inputAudio == null) {
-            return null;
-        }
-
-        // Choose correct extension
-        for(AudioExtension extension : AudioExtension.values()) {
-            // Rename temp with extension
-            File temp = new File(String.format("%s.%s", inputAudio.getPath(), extension.name()));
-            inputAudio.renameTo(temp);
-
-            // Validate audio with current extension
-            if(isAudioFile(temp.getPath())) {
-                return temp;
-            }
-        }
-
-        // File is not supported
-        deleteFile(inputAudio);
-
-        return null;
-    }
-
-    private enum AudioExtension {
-        mp3, wav, ogg, opus, acc, wma, flac, mp4, mp1, mp2, m4a
     }
 }
