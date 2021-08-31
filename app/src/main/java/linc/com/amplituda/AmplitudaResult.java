@@ -4,6 +4,7 @@ import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.Map;
 
 public final class AmplitudaResult<T> {
 
-    private String amplitudes;
+    private final String amplitudes;
     private final InputAudio<T> inputAudio;
 
     AmplitudaResult(
@@ -112,34 +113,26 @@ public final class AmplitudaResult<T> {
      */
     public List<Integer> amplitudesForSecond(final int second) {
         List<Integer> data = amplitudesAsList();
-
         final int duration = (int) getAudioDuration(DurationUnit.SECONDS);
-        final int aps = data.size() / duration; // amplitudes per second
 
-        // Use second as a map key
-        int currentSecond = 0;
-
-        // Map with format = Map<Second, Amplitudes>
-        Map<Integer, List<Integer>> amplitudes = new LinkedHashMap<>();
-
-        // Temporary amplitudes list
-        List<Integer> amplitudesPerSecond = new ArrayList<>();
-
-        for(int sampleIndex = 0; sampleIndex < data.size(); sampleIndex++) {
-            if(sampleIndex % aps == 0) { // Save all amplitudes when current frame index equals to aps
-                // Save amplitudes to map
-                amplitudes.put(currentSecond, new ArrayList<>(amplitudesPerSecond));
-                // Clear temporary amplitudes
-                amplitudesPerSecond.clear();
-                // Increase current second
-                currentSecond++;
-            } else {
-                // Add amplitude to temporary list
-                amplitudesPerSecond.add(data.get(sampleIndex));
-            }
+        if(second > duration || duration == 0) {
+            return Collections.emptyList();
         }
 
-        return amplitudes.get(second);
+        // amplitudes per second
+        final int aps = (data.size() / duration);
+
+        int index = (second * data.size()) / duration;
+
+        List<Integer> amplitudesForSecond = new ArrayList<>();
+
+        for(int i = index; i > index - aps; i--) {
+            if(i < 0 || i >= data.size())
+                break;
+            amplitudesForSecond.add(data.get(i));
+        }
+        Collections.reverse(amplitudesForSecond);
+        return amplitudesForSecond;
     }
 
     /**
@@ -151,14 +144,6 @@ public final class AmplitudaResult<T> {
     private String amplitudesToSingleLineSequence(final String amplitudes, final String delimiter) {
         String[] log = amplitudes.split("\n");
         return TextUtils.join(delimiter, log);
-    }
-
-    /**
-     * Update amplitudes data
-     * Call only from internal compress()
-     */
-    void setAmplitudes(final String amplitudes) {
-        this.amplitudes = amplitudes;
     }
 
     public enum  DurationUnit {
