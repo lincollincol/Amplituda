@@ -2,10 +2,10 @@ package linc.com.amplituda;
 
 public final class Compress {
 
-    static final int NONE = 0;
-    public static final int SKIP = 1;
-    public static final int PEEK = 2;
-    public static final int AVERAGE = 3;
+    static final int NONE = 1;
+    public static final int SKIP = 2;
+    public static final int PEEK = 3;
+    public static final int AVERAGE = 4;
 
     private final int type;
     private final int preferredSamplesPerSecond;
@@ -25,5 +25,9 @@ public final class Compress {
 
     public int getPreferredSamplesPerSecond() {
         return preferredSamplesPerSecond;
+    }
+
+    boolean isNotValid() {
+        return type > NONE && preferredSamplesPerSecond <= 0;
     }
 }
