@@ -27,7 +27,8 @@ public class MainActivity extends AppCompatActivity {
         Amplituda amplituda = new Amplituda(this);
 
         amplituda.processAudio(
-                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
+//                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
+                "/storage/emulated/0/Music/sample_amr.amr",
                 Compress.withParams(Compress.AVERAGE, 1),
                 new AmplitudaProgressListener() {
                     @Override
