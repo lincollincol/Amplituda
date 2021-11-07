@@ -80,7 +80,7 @@ public final class Amplituda {
             return new AmplitudaProcessingOutput<>(processFileJNI(
                     audio,
                     inputAudio,
-                    compress == null ? Compress.withParams(Compress.NONE, Compress.NONE) : compress,
+                    getValidCompression(compress),
                     listener
             ), inputAudio);
         } catch (AmplitudaException exception) {
@@ -107,7 +107,7 @@ public final class Amplituda {
                 return new AmplitudaProcessingOutput<>(processFileJNI(
                         new File(audio),
                         inputAudio,
-                        compress == null ? Compress.withParams(Compress.NONE, Compress.NONE) : compress,
+                        getValidCompression(compress),
                         listener
                 ), inputAudio);
             }
@@ -134,7 +134,7 @@ public final class Amplituda {
             AmplitudaResultJNI result = processFileJNI(
                     tempAudio,
                     inputAudio,
-                    compress == null ? Compress.withParams(Compress.NONE, Compress.NONE) : compress,
+                    getValidCompression(compress),
                     listener
             );
 
@@ -181,7 +181,7 @@ public final class Amplituda {
             AmplitudaResultJNI result = processFileJNI(
                     tempAudio,
                     inputAudio,
-                    compress == null ? Compress.withParams(Compress.NONE, Compress.NONE) : compress,
+                    getValidCompression(compress),
                     listener
             );
 
@@ -236,6 +236,13 @@ public final class Amplituda {
         // Stop progress after processing
         stopProgress(listener);
         return result;
+    }
+
+    private Compress getValidCompression(Compress compress) {
+        if(compress == null || compress.isNotValid()) {
+            return Compress.withParams(Compress.NONE, Compress.NONE);
+        }
+        return compress;
     }
 
     private synchronized <T> AmplitudaProcessingOutput<T> errorOutput(

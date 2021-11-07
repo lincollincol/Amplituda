@@ -119,9 +119,6 @@ double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleInde
 static int decode_packet(
         AVCodecContext *dec,
         const AVPacket *pkt,
-//        const int* compress_type,
-//        const int* frames_per_second,
-//        std::string* result,
         std::vector<int>* temp_samples,
         std::string* errors
 ) {
@@ -158,10 +155,6 @@ static int decode_packet(
             }
 
             temp_samples->push_back(((int)(sqrt(sum / frame->nb_samples) * 100)));
-
-//            (*result) += std::to_string(((int)(sqrt(sum / frame->nb_samples) * 100)));
-//            (*result) += "\n";
-
         }
 
         av_frame_unref(frame);
@@ -361,7 +354,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     }
 
     // no need to compress data
-    if(preferred_frames_per_second == actual_frames_per_second) {
+    if(preferred_frames_per_second == actual_frames_per_second/* || preferred_frames_per_second == 0*/) {
         compress_type = COMPRESS_NONE;
     } else {
         compression_divider = actual_frames_per_second / preferred_frames_per_second;
