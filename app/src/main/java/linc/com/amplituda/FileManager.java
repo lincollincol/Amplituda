@@ -66,7 +66,6 @@ final class FileManager {
             InputStream inputStream = resources.openRawResource(resource);
             streamToFile(inputStream, temp, 1024 * 4, inputStream.available(), listener);
             return temp;
-//            return guessAudioExtension(temp);
         } catch (Resources.NotFoundException | IOException ignored) {
             return null;
         }
