@@ -2,7 +2,7 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.webkit.MimeTypeMap;
 
 import java.io.BufferedInputStream;
@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Locale;
@@ -20,30 +19,13 @@ import java.util.Locale;
 
 final class FileManager {
 
-    static final String RAW_TEMP = "amplituda_tmp_raw";
+    static final String AMPLITUDA_INTERNAL_TEMP = "amplituda_internal_temp";
     private final Resources resources;
     private final String cache;
 
     FileManager(final Context context) {
         resources = context.getResources();
         cache = context.getCacheDir().getPath() + File.separator;
-    }
-
-    /**
-     * Validate audio file
-     * @param path - audio file path
-     * @return true when file with path is audio file.
-     */
-    synchronized boolean isAudioFile(final String path) {
-        try {
-            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-            mediaMetadataRetriever.setDataSource(path);
-            return mediaMetadataRetriever.extractMetadata(
-                    MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO
-            ).equalsIgnoreCase("yes");
-        } catch (Exception ignored) {
-            return false;
-        }
     }
 
     /**
@@ -61,7 +43,7 @@ final class FileManager {
      * @return raw file from local storage
      */
     synchronized File getRawFile(final int resource, final AmplitudaProgressListener listener) {
-        File temp = new File(cache, RAW_TEMP);
+        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
         try {
             InputStream inputStream = resources.openRawResource(resource);
             streamToFile(inputStream, temp, 1024 * 4, inputStream.available(), listener);
@@ -77,14 +59,7 @@ final class FileManager {
      * @return audio file from local storage
      */
     synchronized File getUrlFile(final String audioUrl, final AmplitudaProgressListener listener) {
-        File temp = new File(String.format(
-                Locale.US,
-                "%s%s.%s",
-                cache,
-                RAW_TEMP,
-                MimeTypeMap.getFileExtensionFromUrl(audioUrl)
-        ));
-
+        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
         try {
             URL url = new URL(audioUrl);
             URLConnection connection = url.openConnection();
@@ -101,6 +76,38 @@ final class FileManager {
             return null;
         }
         return temp;
+    }
+
+    /**
+     * Copy audio from Uri to local storage
+     * @param audioStream - audio file stream
+     * @return audio file from local storage
+     */
+    synchronized File getUriFile(final InputStream audioStream, final AmplitudaProgressListener listener) {
+        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+        try {
+            streamToFile(audioStream, temp, 1024 * 4, audioStream.available(), listener);
+            return temp;
+        } catch (Resources.NotFoundException | IOException ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Copy audio from Uri to local storage
+     * @param audioByteArray - audio file stream
+     * @return audio file from local storage
+     */
+    synchronized File getByteArrayFile(final byte[] audioByteArray, final AmplitudaProgressListener listener) {
+        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+        try (FileOutputStream outputStream = new FileOutputStream(temp)) {
+            listener.onProgressInternal(0);
+            outputStream.write(audioByteArray);
+            listener.onProgressInternal(100);
+            return temp;
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     /**

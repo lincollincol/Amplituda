@@ -366,9 +366,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // read frames from the file
     while (av_read_frame(fmt_ctx, pkt) >= 0) {
-
+        bool is_audio_stream = pkt->stream_index == audio_stream_idx;
         // check if the packet belongs to a stream we are interested in, otherwise skip it
-        if (pkt->stream_index == audio_stream_idx) {
+        if (is_audio_stream) {
             ret = decode_packet(audio_dec_ctx, pkt, &temp_data, &errors_data);
 
             // compress data when current_frame_idx is compression_divider
@@ -396,7 +396,11 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                 current_progress = progress;
             }
         }
-        current_frame_idx++;
+
+        // Count only audio stream frames (this will prevent +100% progress for video processing)
+        if(is_audio_stream) {
+            current_frame_idx++;
+        }
     }
 
     // make one last progress listener call
