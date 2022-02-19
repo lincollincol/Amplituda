@@ -30,23 +30,6 @@ final class FileManager {
     }
 
     /**
-     * Validate audio file
-     * @param path - audio file path
-     * @return true when file with path is audio file.
-     */
-    synchronized boolean isAudioFile(final String path) {
-        try {
-            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-            mediaMetadataRetriever.setDataSource(path);
-            return mediaMetadataRetriever.extractMetadata(
-                    MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO
-            ).equalsIgnoreCase("yes");
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    /**
      * Delete local storage file
      */
     synchronized void deleteFile(final File file) {

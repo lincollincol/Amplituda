@@ -210,10 +210,6 @@ public final class Amplituda {
             throw new FileNotFoundException();
         }
 
-        if(!fileManager.isAudioFile(audio.getPath())) {
-            throw new FileOpenException();
-        }
-
         // Save start time
         long startTime = System.currentTimeMillis();
 
