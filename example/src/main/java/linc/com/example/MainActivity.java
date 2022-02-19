@@ -2,10 +2,18 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.FileUtils;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -47,14 +55,13 @@ public class MainActivity extends AppCompatActivity {
                         String currentOperation = "";
                         switch (operation) {
                             case PROCESSING: currentOperation = "Process audio"; break;
-                            case DECODING: currentOperation = "Decode resource"; break;
+                            case DECODING: currentOperation = "Decode audio"; break;
                             case DOWNLOADING: currentOperation = "Download audio from url"; break;
                         }
                         System.out.printf("%s: %d%% %n", currentOperation, progress);
                     }
                 }
-        ).get(result -> { printResult(result);
-        }, exception -> { exception.printStackTrace(); });
+        ).get(result -> printResult(result), exception -> exception.printStackTrace());
     }
 
     private void printResult(AmplitudaResult<?> result) {

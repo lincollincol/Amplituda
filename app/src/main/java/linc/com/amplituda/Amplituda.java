@@ -4,6 +4,7 @@ import android.content.Context;
 import android.webkit.URLUtil;
 
 import java.io.File;
+import java.io.InputStream;
 
 import linc.com.amplituda.exceptions.*;
 import linc.com.amplituda.exceptions.io.*;
@@ -41,6 +42,14 @@ public final class Amplituda {
         return processAudio(audio, null, null);
     }
 
+    public AmplitudaProcessingOutput<InputStream> processAudio(final InputStream audio) {
+        return processAudio(audio, null, null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(final byte[] audio) {
+        return processAudio(audio, null, null);
+    }
+
     /** Audio file + compress params */
 
     public AmplitudaProcessingOutput<File> processAudio(final File audio, final Compress compressParams) {
@@ -55,6 +64,14 @@ public final class Amplituda {
         return processAudio(audio, compressParams, null);
     }
 
+    public AmplitudaProcessingOutput<InputStream> processAudio(final InputStream audio, final Compress compressParams) {
+        return processAudio(audio, compressParams, null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(final byte[] audio, final Compress compressParams) {
+        return processAudio(audio, compressParams, null);
+    }
+
     /** Audio file + progress listener */
 
     public AmplitudaProcessingOutput<File> processAudio(final File audio, final AmplitudaProgressListener listener) {
@@ -66,6 +83,14 @@ public final class Amplituda {
     }
 
     public AmplitudaProcessingOutput<Integer> processAudio(final int audio, final AmplitudaProgressListener listener) {
+        return processAudio(audio, null, listener);
+    }
+
+    public AmplitudaProcessingOutput<InputStream> processAudio(final InputStream audio, final AmplitudaProgressListener listener) {
+        return processAudio(audio, null, listener);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(final byte[] audio, final AmplitudaProgressListener listener) {
         return processAudio(audio, null, listener);
     }
 
@@ -189,6 +214,68 @@ public final class Amplituda {
             fileManager.deleteFile(tempAudio);
 
             return new AmplitudaProcessingOutput<>(result, inputAudio);
+        } catch (AmplitudaException exception) {
+            // Handle processing error
+            return errorOutput(exception, inputAudio, listener);
+        }
+    }
+
+    /**
+     * Calculate amplitudes from file
+     * @param audio - uri source file
+     */
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Compress compress,
+            final AmplitudaProgressListener listener
+    ) {
+        startProgress(listener);
+        InputAudio<InputStream> inputAudio = new InputAudio<>(audio, InputAudio.Type.INPUT_STREAM);
+        try {
+            updateProgressOperation(listener, ProgressOperation.DECODING);
+            File audioFile = fileManager.getUriFile(audio, listener);
+            AmplitudaProcessingOutput<InputStream> output = new AmplitudaProcessingOutput<>(
+                    processFileJNI(
+                            audioFile,
+                            inputAudio,
+                            getValidCompression(compress),
+                            listener
+                    ),
+                    inputAudio
+            );
+            fileManager.deleteFile(audioFile);
+            return output;
+        } catch (AmplitudaException exception) {
+            // Handle processing error
+            return errorOutput(exception, inputAudio, listener);
+        }
+    }
+
+    /**
+     * Calculate amplitudes from file
+     * @param audio - uri source file
+     */
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Compress compress,
+            final AmplitudaProgressListener listener
+    ) {
+        startProgress(listener);
+        InputAudio<byte[]> inputAudio = new InputAudio<>(audio, InputAudio.Type.BYTE_ARRAY);
+        try {
+            updateProgressOperation(listener, ProgressOperation.DECODING);
+            File audioFile = fileManager.getByteArrayFile(audio, listener);
+            AmplitudaProcessingOutput<byte[]> output = new AmplitudaProcessingOutput<>(
+                    processFileJNI(
+                        audioFile,
+                        inputAudio,
+                        getValidCompression(compress),
+                        listener
+                    ),
+                    inputAudio
+            );
+            fileManager.deleteFile(audioFile);
+            return output;
         } catch (AmplitudaException exception) {
             // Handle processing error
             return errorOutput(exception, inputAudio, listener);
