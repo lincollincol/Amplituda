@@ -2,21 +2,11 @@ package linc.com.example;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.FileUtils;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 
 import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProgressListener;
