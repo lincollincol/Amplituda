@@ -362,7 +362,7 @@ public final class Amplituda {
      * NDK part
      */
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("amplituda-native-lib");
     }
 
     native AmplitudaResultJNI amplitudesFromAudioJNI(
