@@ -4,31 +4,32 @@ set(ffmpeg_DIR ${CMAKE_SOURCE_DIR}/ffmpeg)
 
 include_directories(${ffmpeg_DIR}/${ANDROID_ABI}/include)
 
-add_library(avutil SHARED IMPORTED)
-set_target_properties(avutil PROPERTIES IMPORTED_LOCATION
-        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavutil.so)
+add_library(amplituda-avutil SHARED IMPORTED)
+set_target_properties(amplituda-avutil PROPERTIES IMPORTED_LOCATION
+        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavutil-amplituda.so)
 
-add_library(avformat SHARED IMPORTED)
-set_target_properties(avformat PROPERTIES IMPORTED_LOCATION
-        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavformat.so)
+add_library(amplituda-avformat SHARED IMPORTED)
+set_target_properties(amplituda-avformat PROPERTIES IMPORTED_LOCATION
+        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavformat-amplituda.so)
 
-add_library(avcodec SHARED IMPORTED)
-set_target_properties(avcodec PROPERTIES IMPORTED_LOCATION
-        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavcodec.so)
+add_library(amplituda-avcodec SHARED IMPORTED)
+set_target_properties(amplituda-avcodec PROPERTIES IMPORTED_LOCATION
+        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libavcodec-amplituda.so)
 
-add_library(swresample SHARED IMPORTED)
-set_target_properties(swresample PROPERTIES IMPORTED_LOCATION
-        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libswresample.so)
+add_library(amplituda-swresample SHARED IMPORTED)
+set_target_properties(amplituda-swresample PROPERTIES IMPORTED_LOCATION
+        ${ffmpeg_DIR}/${ANDROID_ABI}/lib/libswresample-amplituda.so)
 
-add_library(native-lib SHARED native-lib.cpp)
-set_target_properties(native-lib PROPERTIES LINKER_LANGUAGE CXX)
+add_library(amplituda-native-lib SHARED amplituda-native-lib.cpp)
+set_target_properties(amplituda-native-lib PROPERTIES LINKER_LANGUAGE CXX)
 
 #find_library( log-lib log )
 
-target_link_libraries(native-lib
-        avutil
-        avformat
-        avcodec
-        swresample
+target_link_libraries(
+        amplituda-native-lib
+        amplituda-avutil
+        amplituda-avformat
+        amplituda-avcodec
+        amplituda-swresample
 #        ${log-lib}
         )
