@@ -3,17 +3,21 @@ package linc.com.example;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Locale;
 
 import linc.com.amplituda.Amplituda;
+import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaProgressListener;
 import linc.com.amplituda.AmplitudaResult;
 import linc.com.amplituda.Compress;
 import linc.com.amplituda.InputAudio;
 import linc.com.amplituda.ProgressOperation;
+import linc.com.amplituda.callback.AmplitudaErrorListener;
+import linc.com.amplituda.exceptions.AmplitudaException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,7 +28,25 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
 
-        amplituda.processAudio(
+        amplituda.setLogConfig(Log.ERROR, true);
+
+        for(int i = 0; i < 10; i++) {
+//            AmplitudaResult<String> result = amplituda
+//                    .processAudio("/storage/9016-4EF8/MUSIC/Palace - Heaven Up There.mp3")
+//                    .get();
+//            System.out.println(result.amplitudesAsJson());
+            new Thread(() -> {
+                AmplitudaResult<String> result = amplituda
+                        .processAudio("/storage/9016-4EF8/MUSIC/Palace - Heaven Up There.mp3")
+                        .get((AmplitudaErrorListener) exception -> {
+                            exception.printStackTrace();
+                        });
+                System.out.println(result.amplitudesAsJson());
+            }).start();
+        }
+
+
+        /*amplituda.processAudio(
 //                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
                 "/storage/9016-4EF8/MUSIC/Palace - Heaven Up There.mp3",
                 Compress.withParams(Compress.AVERAGE, 1),
@@ -52,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                         System.out.printf("%s: %d%% %n", currentOperation, progress);
                     }
                 }
-        ).get(result -> printResult(result), exception -> exception.printStackTrace());
+        ).get(result -> printResult(result), exception -> exception.printStackTrace());*/
     }
 
     private void printResult(AmplitudaResult<?> result) {

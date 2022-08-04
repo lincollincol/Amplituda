@@ -286,7 +286,7 @@ public final class Amplituda {
      * Calculate amplitudes from file
      * @param audio - source file
      */
-    private <T> AmplitudaResultJNI processFileJNI(
+    private synchronized <T> AmplitudaResultJNI processFileJNI(
             final File audio,
             final InputAudio<T> inputAudio,
             final Compress compress,
