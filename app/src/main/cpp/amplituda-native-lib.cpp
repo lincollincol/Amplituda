@@ -1,9 +1,9 @@
 #include <jni.h>
-//#include <android/log.h>
 #include <string>
 #include <vector>
 #include "error_code.h"
 #include "compress_type.h"
+//#include <android/log.h>
 
 extern "C" {
 #include "libavutil/timestamp.h"
@@ -260,8 +260,8 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     int compress_type = (int) jcompress_type;
 
     // meta and params
-    int current_frame_idx = 0, current_progress = 0;
-    int nb_frames, actual_frames_per_second, compression_divider;
+    int current_frame_idx = 0, current_progress = 0, nb_frames = 0;
+    int actual_frames_per_second, compression_divider;
     double duration = 0.0;
     bool valid_listener = false;
 
@@ -337,7 +337,10 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // full formula: (channels * rate * duration [seconds]) / frame_size
     // amplituda case - 1 [channel] instead of audio_dec_ctx->channels
-    nb_frames = (audio_dec_ctx->sample_rate * (int) duration) / audio_dec_ctx->frame_size;
+    // also prevent division by zero exception
+    if(audio_dec_ctx->frame_size > 0) {
+        nb_frames = (audio_dec_ctx->sample_rate * (int) duration) / audio_dec_ctx->frame_size;
+    }
 
     // prepare compression params
     actual_frames_per_second = (int) (nb_frames / duration);
@@ -384,8 +387,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         }
 
         av_packet_unref(pkt);
-        if (ret < 0)
+        if (ret < 0) {
             break;
+        }
 
         // update progress listener
         if(valid_listener) {
