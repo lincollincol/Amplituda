@@ -14,7 +14,7 @@ public final class AmplitudaProcessingOutput<T> {
     private final AmplitudaResult<T> amplitudaResult;
     private LinkedHashSet<AmplitudaException> processingErrors = new LinkedHashSet<>();
 
-    private AmplitudaProcessingOutput(
+    AmplitudaProcessingOutput(
             final String amplitudes,
             final InputAudio<T> inputAudio
     ) {

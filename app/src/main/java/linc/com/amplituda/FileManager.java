@@ -3,11 +3,15 @@ package linc.com.amplituda;
 import android.content.Context;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.os.Environment;
 import android.webkit.MimeTypeMap;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,13 +23,82 @@ import java.util.Locale;
 
 final class FileManager {
 
-    static final String AMPLITUDA_INTERNAL_TEMP = "amplituda_internal_temp";
     private final Resources resources;
     private final String cache;
 
+    private static final String AMPLITUDA_INTERNAL_PREFIX = "internal-ampl";
+    static final String AMPLITUDA_INTERNAL_TEMP = AMPLITUDA_INTERNAL_PREFIX + "-temp";
+    static final String AMPLITUDA_INTERNAL_CACHE = AMPLITUDA_INTERNAL_PREFIX + "-cache";
+
     FileManager(final Context context) {
         resources = context.getResources();
-        cache = context.getCacheDir().getPath() + File.separator;
+        cache = context.getExternalCacheDir()
+                .getPath() + File.separator;
+    }
+
+    synchronized File getCacheFile(
+            final String hash,
+            final String key
+    ) {
+        try {
+            File file = new File(
+                    cache,
+                    AMPLITUDA_INTERNAL_CACHE + "_" + key + "_" + hash + ".txt"
+            );
+            if(!file.exists()) {
+                file.createNewFile();
+            }
+            return file;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Read cache file
+     */
+    synchronized String readFile(
+            final File file
+    ) {
+        if(file == null) {
+            return null;
+        }
+        try(BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            StringBuilder builder = new StringBuilder();
+            String line = reader.readLine();
+            while (line != null) {
+                builder.append(line).append(System.lineSeparator());
+                line = reader.readLine();
+            }
+            return builder.toString().trim();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Write cache file
+     */
+    synchronized void writeCacheFile(
+            final String hash,
+            final String key,
+            final String jsonData
+    ) {
+        String name = hash;
+        if(key != null && !key.isEmpty()) {
+            name += "_" + key;
+        }
+        File file = new File(AMPLITUDA_INTERNAL_CACHE, name + ".txt");
+        if(file.exists()) {
+            file.delete();
+        }
+        try(FileWriter writer = new FileWriter(file)) {
+            writer.write(jsonData);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -43,7 +116,7 @@ final class FileManager {
      * @return raw file from local storage
      */
     synchronized File getRawFile(final int resource, final AmplitudaProgressListener listener) {
-        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+        File temp = new File(cache, String.valueOf(resource));
         try {
             InputStream inputStream = resources.openRawResource(resource);
             streamToFile(inputStream, temp, 1024 * 4, inputStream.available(), listener);
@@ -59,7 +132,7 @@ final class FileManager {
      * @return audio file from local storage
      */
     synchronized File getUrlFile(final String audioUrl, final AmplitudaProgressListener listener) {
-        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+        File temp = new File(cache, String.valueOf(audioUrl.hashCode()));
         try {
             URL url = new URL(audioUrl);
             URLConnection connection = url.openConnection();
@@ -72,7 +145,6 @@ final class FileManager {
                     listener
             );
         } catch (IOException e) {
-            e.printStackTrace();
             return null;
         }
         return temp;

@@ -14,6 +14,7 @@ import linc.com.amplituda.Amplituda;
 import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaProgressListener;
 import linc.com.amplituda.AmplitudaResult;
+import linc.com.amplituda.Cache;
 import linc.com.amplituda.Compress;
 import linc.com.amplituda.InputAudio;
 import linc.com.amplituda.ProgressOperation;
@@ -28,9 +29,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Amplituda amplituda = new Amplituda(this);
+        amplituda.setLogConfig(Log.ERROR, true);
+
         amplituda.processAudio(
-                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
+//                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
+                "/storage/emulated/0/Music/sample3.aac",
                 Compress.withParams(Compress.AVERAGE, 1),
+                Cache.withParams(Cache.REUSE),
                 new AmplitudaProgressListener() {
                     @Override
                     public void onStartProgress() {
