@@ -5,7 +5,7 @@ public class Cache {
     static final int NONE = 1;
     public static final int REUSE = 2;
     public static final int REFRESH = 3;
-    public static final String DEFAULT_KEY = "default";
+    public static final String DEFAULT_KEY = "";
 
     private final int state;
     private final String key;
@@ -22,6 +22,8 @@ public class Cache {
     public static Cache withParams(final int state, final String key) {
         if(state < NONE || state > REFRESH) {
             return withParams(NONE);
+        } else if(key == null) {
+            return withParams(state, DEFAULT_KEY);
         }
         return new Cache(state, key);
     }

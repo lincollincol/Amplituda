@@ -5,16 +5,11 @@ import android.webkit.URLUtil;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Locale;
 
 import linc.com.amplituda.exceptions.*;
 import linc.com.amplituda.exceptions.io.*;
-
-/**
- * TODO:
- * clear cache / by key
- * uri instead of inputstream
- * */
 
 public final class Amplituda {
 
@@ -35,6 +30,39 @@ public final class Amplituda {
         return this;
     }
 
+    /**
+     * Clear cache by audio and key or completely
+     */
+    public Amplituda clearCache() {
+        fileManager.clearAllCacheFiles();
+        return this;
+    }
+
+    public Amplituda clearCache(final File audio) {
+        clearCache(String.valueOf(audio.hashCode()), true);
+        return this;
+    }
+
+    public Amplituda clearCache(final String audio, final boolean isKey) {
+        fileManager.clearCache(isKey ? audio : String.valueOf(audio.hashCode()));
+        return this;
+    }
+
+    public Amplituda clearCache(final int audio) {
+        clearCache(String.valueOf(audio), true);
+        return this;
+    }
+
+    public Amplituda clearCache(final InputStream audio) {
+        clearCache(fileManager.getInputStreamHashString(audio), true);
+        return this;
+    }
+
+    public Amplituda clearCache(final byte[] audio) {
+        clearCache(String.valueOf(Arrays.hashCode(audio)), true);
+        return this;
+    }
+
     /** Audio file only */
 
     public AmplitudaProcessingOutput<File> processAudio(final File audio) {
@@ -46,6 +74,14 @@ public final class Amplituda {
     }
 
     public AmplitudaProcessingOutput<Integer> processAudio(final int audio) {
+        return processAudio(audio, Compress.getDefault(), Cache.getDefault(), null);
+    }
+
+    public AmplitudaProcessingOutput<InputStream> processAudio(final InputStream audio) {
+        return processAudio(audio, Compress.getDefault(), Cache.getDefault(), null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(final byte[] audio) {
         return processAudio(audio, Compress.getDefault(), Cache.getDefault(), null);
     }
 
@@ -72,6 +108,22 @@ public final class Amplituda {
         return processAudio(audio, compressParams, Cache.getDefault(), null);
     }
 
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Compress compressParams
+    ) {
+        return processAudio(audio, compressParams, Cache.getDefault(), null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Compress compressParams
+    ) {
+        return processAudio(audio, compressParams, Cache.getDefault(), null);
+    }
+
+    /** Audio file + cache params */
+
     public AmplitudaProcessingOutput<File> processAudio(
             final File audio,
             final Cache cacheParams
@@ -88,6 +140,20 @@ public final class Amplituda {
 
     public AmplitudaProcessingOutput<Integer> processAudio(
             final int audio,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, Compress.getDefault(), cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, Compress.getDefault(), cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
             final Cache cacheParams
     ) {
         return processAudio(audio, Compress.getDefault(), cacheParams, null);
@@ -116,6 +182,22 @@ public final class Amplituda {
         return processAudio(audio, Compress.getDefault(), Cache.getDefault(), listener);
     }
 
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, Compress.getDefault(), Cache.getDefault(), listener);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, Compress.getDefault(), Cache.getDefault(), listener);
+    }
+
+    /** Audio file + compress params + progress listener */
+
     public AmplitudaProcessingOutput<File> processAudio(
             final File audio,
             final Compress compressParams,
@@ -140,6 +222,24 @@ public final class Amplituda {
         return processAudio(audio, compressParams, Cache.getDefault(), listener);
     }
 
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Compress compressParams,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, compressParams, Cache.getDefault(), listener);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Compress compressParams,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, compressParams, Cache.getDefault(), listener);
+    }
+
+    /** Audio file + cache params + progress listener */
+
     public AmplitudaProcessingOutput<File> processAudio(
             final File audio,
             final Cache cacheParams,
@@ -163,6 +263,24 @@ public final class Amplituda {
     ) {
         return processAudio(audio, Compress.getDefault(), cacheParams, listener);
     }
+
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Cache cacheParams,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, Compress.getDefault(), cacheParams, listener);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Cache cacheParams,
+            final AmplitudaProgressListener listener
+    ) {
+        return processAudio(audio, Compress.getDefault(), cacheParams, listener);
+    }
+
+    /** Audio file + compress params + cache params + progress listener */
 
     public AmplitudaProcessingOutput<File> processAudio(
             final File audio,
@@ -282,6 +400,70 @@ public final class Amplituda {
 
     /**
      * Calculate amplitudes from file
+     * @param audio - input stream audio source file (uri content input stream)
+     */
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Compress compress,
+            final Cache cache,
+            final AmplitudaProgressListener listener
+    ) {
+        startProgress(listener);
+        InputAudio<InputStream> inputAudio = new InputAudio<>(audio, InputAudio.Type.INPUT_STREAM);
+        try {
+            updateProgressOperation(listener, ProgressOperation.DECODING);
+            // Copy input stream to local file
+            File tempAudio = fileManager.getInputStreamFile(audio, listener);
+            // Check for success copy operation from IS to local tmp
+            if(tempAudio == null) {
+                return errorOutput(new InvalidAudioInputStreamException(), inputAudio, listener);
+            }
+            AmplitudaProcessingOutput<InputStream> output = new AmplitudaProcessingOutput<>(
+                    processFileJNI(tempAudio, inputAudio, compress, cache, listener),
+                    inputAudio
+            );
+            fileManager.deleteFile(tempAudio);
+            return output;
+        } catch (AmplitudaException exception) {
+            // Handle processing error
+            return errorOutput(exception, inputAudio, listener);
+        }
+    }
+
+    /**
+     * Calculate amplitudes from file
+     * @param audio - byte array source file
+     */
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Compress compress,
+            final Cache cache,
+            final AmplitudaProgressListener listener
+    ) {
+        startProgress(listener);
+        InputAudio<byte[]> inputAudio = new InputAudio<>(audio, InputAudio.Type.BYTE_ARRAY);
+        try {
+            updateProgressOperation(listener, ProgressOperation.DECODING);
+            // Copy raw to local file
+            File tempAudio = fileManager.getByteArrayFile(audio, listener);
+            // Check for success copy operation from IS to local tmp
+            if(tempAudio == null) {
+                return errorOutput(new InvalidAudioByteArrayException(), inputAudio, listener);
+            }
+            AmplitudaProcessingOutput<byte[]> output = new AmplitudaProcessingOutput<>(
+                    processFileJNI(tempAudio, inputAudio, compress, cache, listener),
+                    inputAudio
+            );
+            fileManager.deleteFile(tempAudio);
+            return output;
+        } catch (AmplitudaException exception) {
+            // Handle processing error
+            return errorOutput(exception, inputAudio, listener);
+        }
+    }
+
+    /**
+     * Calculate amplitudes from file
      * @param audioFile - source file
      */
     private synchronized <T> AmplitudaResultJNI processFileJNI(
@@ -335,20 +517,6 @@ public final class Amplituda {
         return result;
     }
 
-    /*private AmplitudaProcessingOutput<?> checkAudioInCache(final String hash, final String key) {
-        String data = fileManager.readCacheFile(hash, key);
-        if(data == null) {
-            return null;
-        }
-        return AmplitudaJsonManager.fromJson(data);
-//        switch (cache.getState()) {
-//            case Cache.ENABLE:
-//            case Cache.REFRESH: break;
-//            case Cache.CLEAR: break;
-//            default: break;
-//        }
-    }*/
-
     private synchronized <T> AmplitudaProcessingOutput<T> errorOutput(
             final AmplitudaException exception,
             final InputAudio<T> inputAudio,
@@ -382,19 +550,23 @@ public final class Amplituda {
     private AmplitudaResultJNI amplitudesFromCache(
             final File audioCache
     ) {
-        String cacheData = fileManager.readFile(audioCache);
-        if(cacheData == null || cacheData.isEmpty()) {
+        try {
+            String cacheData = fileManager.readFile(audioCache);
+            if(cacheData == null || cacheData.isEmpty()) {
+                return null;
+            }
+            int durationStartIdx = cacheData.indexOf("=");
+            int durationEndIdx = cacheData.indexOf(System.lineSeparator());
+            String duration = cacheData.substring(0, durationEndIdx)
+                    .substring(durationStartIdx + 1, durationEndIdx);
+            String amplitudes = cacheData.substring(durationEndIdx + 1);
+            AmplitudaResultJNI resultJNI = new AmplitudaResultJNI();
+            resultJNI.setDuration(Double.parseDouble(duration));
+            resultJNI.setAmplitudes(amplitudes);
+            return resultJNI;
+        } catch (Exception ignored) {
             return null;
         }
-        int durationStartIdx = cacheData.indexOf("=");
-        int durationEndIdx = cacheData.indexOf(System.lineSeparator());
-        String duration = cacheData.substring(0, durationEndIdx)
-                .substring(durationStartIdx + 1, durationEndIdx);
-        String amplitudes = cacheData.substring(durationEndIdx + 1);
-        AmplitudaResultJNI resultJNI = new AmplitudaResultJNI();
-        resultJNI.setDuration(Double.parseDouble(duration));
-        resultJNI.setAmplitudes(amplitudes);
-        return resultJNI;
     }
 
     /**

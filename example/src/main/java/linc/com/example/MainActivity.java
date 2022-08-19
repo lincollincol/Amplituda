@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -30,10 +31,8 @@ public class MainActivity extends AppCompatActivity {
 
         Amplituda amplituda = new Amplituda(this);
         amplituda.setLogConfig(Log.ERROR, true);
-
         amplituda.processAudio(
-//                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
-                "/storage/emulated/0/Music/sample3.aac",
+                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
                 Compress.withParams(Compress.AVERAGE, 1),
                 Cache.withParams(Cache.REUSE),
                 new AmplitudaProgressListener() {

@@ -2,13 +2,12 @@ package linc.com.amplituda;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.net.Uri;
-import android.os.Environment;
-import android.webkit.MimeTypeMap;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -18,17 +17,14 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Locale;
+import java.util.Arrays;
 
 
 final class FileManager {
 
     private final Resources resources;
     private final String cache;
-
-    private static final String AMPLITUDA_INTERNAL_PREFIX = "internal-ampl";
-    static final String AMPLITUDA_INTERNAL_TEMP = AMPLITUDA_INTERNAL_PREFIX + "-temp";
-    static final String AMPLITUDA_INTERNAL_CACHE = AMPLITUDA_INTERNAL_PREFIX + "-cache";
+    static final String AMPLITUDA_INTERNAL_CACHE = "internal-ampl-cache";
 
     FileManager(final Context context) {
         resources = context.getResources();
@@ -36,22 +32,47 @@ final class FileManager {
                 .getPath() + File.separator;
     }
 
+    /**
+     * Get or create cache file by hash or key
+     */
     synchronized File getCacheFile(
             final String hash,
             final String key
     ) {
         try {
-            File file = new File(
-                    cache,
-                    AMPLITUDA_INTERNAL_CACHE + "_" + key + "_" + hash + ".txt"
-            );
+            String name = AMPLITUDA_INTERNAL_CACHE + "_" + (key.isEmpty() ? hash : key) + ".txt";
+            File file = new File(cache, name);
             if(!file.exists()) {
                 file.createNewFile();
             }
             return file;
         } catch (IOException e) {
-            e.printStackTrace();
             return null;
+        }
+    }
+
+    /**
+     * Clear cache by id (key or hash)
+     */
+    synchronized void clearAllCacheFiles() {
+        clearCache(AMPLITUDA_INTERNAL_CACHE);
+    }
+
+    synchronized void clearCache(final String id) {
+        if(id == null || id.isEmpty()) {
+            return;
+        }
+        File[] files = new File(cache).listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return file.isFile() && file.getName().contains(id);
+            }
+        });
+        if(files == null || files.length == 0) {
+            return;
+        }
+        for (File file : files) {
+            file.delete();
         }
     }
 
@@ -73,31 +94,7 @@ final class FileManager {
             }
             return builder.toString().trim();
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
-        }
-    }
-
-    /**
-     * Write cache file
-     */
-    synchronized void writeCacheFile(
-            final String hash,
-            final String key,
-            final String jsonData
-    ) {
-        String name = hash;
-        if(key != null && !key.isEmpty()) {
-            name += "_" + key;
-        }
-        File file = new File(AMPLITUDA_INTERNAL_CACHE, name + ".txt");
-        if(file.exists()) {
-            file.delete();
-        }
-        try(FileWriter writer = new FileWriter(file)) {
-            writer.write(jsonData);
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -107,6 +104,22 @@ final class FileManager {
     synchronized void deleteFile(final File file) {
         if(file != null && file.exists()) {
             file.delete();
+        }
+    }
+
+    /**
+     * Get hash code for input stream
+     */
+    synchronized String getInputStreamHashString(InputStream is) {
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            byte[] buffer = new byte[0xFFFF];
+            for (int len = is.read(buffer); len != -1; len = is.read(buffer)) {
+                os.write(buffer, 0, len);
+            }
+            return String.valueOf(Arrays.hashCode(os.toByteArray()));
+        } catch (IOException ignored) {
+            return null;
         }
     }
 
@@ -155,12 +168,10 @@ final class FileManager {
      * @param audioStream - audio file stream
      * @return audio file from local storage
      */
-    synchronized File getUriFile(final InputStream audioStream, final AmplitudaProgressListener listener) {
-        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+    synchronized File getInputStreamFile(final InputStream audioStream, final AmplitudaProgressListener listener) {
         try {
-            streamToFile(audioStream, temp, 1024 * 4, audioStream.available(), listener);
-            return temp;
-        } catch (Resources.NotFoundException | IOException ignored) {
+            return getByteArrayFile(getByteArrayFromInputStream(audioStream), listener);
+        } catch (IOException ignored) {
             return null;
         }
     }
@@ -171,7 +182,7 @@ final class FileManager {
      * @return audio file from local storage
      */
     synchronized File getByteArrayFile(final byte[] audioByteArray, final AmplitudaProgressListener listener) {
-        File temp = new File(cache, AMPLITUDA_INTERNAL_TEMP);
+        File temp = new File(cache, String.valueOf(Arrays.hashCode(audioByteArray)));
         try (FileOutputStream outputStream = new FileOutputStream(temp)) {
             listener.onProgressInternal(0);
             outputStream.write(audioByteArray);
@@ -188,7 +199,7 @@ final class FileManager {
      * @param temp - cache file to which the stream will be written
      * @param bufferSize - copy operation buffer size
      */
-    private void streamToFile(
+    private synchronized void streamToFile(
             final InputStream inputStream,
             final File temp,
             final int bufferSize,
@@ -216,8 +227,7 @@ final class FileManager {
 
             fos.flush();
             fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
         } finally {
             try {
                 inputStream.close();
@@ -236,5 +246,14 @@ final class FileManager {
         } catch (Exception ignored) {
         }
         return -1L;
+    }
+
+    private synchronized byte[] getByteArrayFromInputStream(InputStream is) throws IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] buffer = new byte[0xFFFF];
+        for (int len = is.read(buffer); len != -1; len = is.read(buffer)) {
+            os.write(buffer, 0, len);
+        }
+        return os.toByteArray();
     }
 }
