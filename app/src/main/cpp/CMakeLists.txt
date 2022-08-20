@@ -32,4 +32,4 @@ target_link_libraries(
         amplituda-avcodec
         amplituda-swresample
 #        ${log-lib}
-        )
+)

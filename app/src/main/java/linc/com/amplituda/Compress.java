@@ -16,6 +16,9 @@ public final class Compress {
     }
 
     public static Compress withParams(final int type, final int preferredSamplesPerSecond) {
+        if(type > NONE && preferredSamplesPerSecond <= 0) {
+            return getDefault();
+        }
         return new Compress(type, preferredSamplesPerSecond);
     }
 
@@ -27,7 +30,7 @@ public final class Compress {
         return preferredSamplesPerSecond;
     }
 
-    boolean isNotValid() {
-        return type > NONE && preferredSamplesPerSecond <= 0;
+    static Compress getDefault() {
+        return withParams(NONE, NONE);
     }
 }

@@ -63,10 +63,21 @@ final class AmplitudaResultJNI {
         return amplitudes;
     }
 
+    public void setDuration(double duration) {
+        this.duration = duration;
+    }
+
+    public void setAmplitudes(String amplitudes) {
+        this.amplitudes = amplitudes;
+    }
+
     /**
      * Get ndk exceptions according to codes
      */
     LinkedHashSet<AmplitudaException> getErrors() {
+        if(errors == null || errors.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
         LinkedHashSet<AmplitudaException> errors = new LinkedHashSet<>();
         for(String error : this.errors.split(" ")) {
             if(error.isEmpty())
