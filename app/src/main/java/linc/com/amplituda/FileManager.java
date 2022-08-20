@@ -184,9 +184,9 @@ final class FileManager {
     synchronized File getByteArrayFile(final byte[] audioByteArray, final AmplitudaProgressListener listener) {
         File temp = new File(cache, String.valueOf(Arrays.hashCode(audioByteArray)));
         try (FileOutputStream outputStream = new FileOutputStream(temp)) {
-            listener.onProgressInternal(0);
+            if(listener != null) listener.onProgressInternal(0);
             outputStream.write(audioByteArray);
-            listener.onProgressInternal(100);
+            if(listener != null) listener.onProgressInternal(100);
             return temp;
         } catch (IOException ignored) {
             return null;

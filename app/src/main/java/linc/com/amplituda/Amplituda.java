@@ -291,12 +291,10 @@ public final class Amplituda {
         startProgress(listener);
         InputAudio<File> inputAudio = new InputAudio<>(audio, InputAudio.Type.FILE);
         try {
-            AmplitudaProcessingOutput<File> output = new AmplitudaProcessingOutput<>(
+            return new AmplitudaProcessingOutput<>(
                     processFileJNI(audio, inputAudio, compress, cache, listener),
                     inputAudio
             );
-
-            return output;
         } catch (AmplitudaException exception) {
             // Handle processing error
             return errorOutput(exception, inputAudio, listener);
