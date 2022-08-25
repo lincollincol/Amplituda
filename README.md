@@ -58,7 +58,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:amplituda:2.3.0'
+  implementation 'com.github.lincollincol:amplituda:x.y.z'
 }
 ```
 
