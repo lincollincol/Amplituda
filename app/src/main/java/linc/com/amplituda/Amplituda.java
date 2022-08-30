@@ -1,6 +1,7 @@
 package linc.com.amplituda;
 
 import android.content.Context;
+import android.util.Log;
 import android.webkit.URLUtil;
 
 import java.io.File;
@@ -157,6 +158,48 @@ public final class Amplituda {
             final Cache cacheParams
     ) {
         return processAudio(audio, Compress.getDefault(), cacheParams, null);
+    }
+
+    /** Audio file + compress params + cache params */
+
+    public AmplitudaProcessingOutput<File> processAudio(
+            final File audio,
+            final Compress compress,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, compress, cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<String> processAudio(
+            final String audio,
+            final Compress compress,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, compress, cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<Integer> processAudio(
+            final int audio,
+            final Compress compress,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, compress, cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<InputStream> processAudio(
+            final InputStream audio,
+            final Compress compress,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, compress, cacheParams, null);
+    }
+
+    public AmplitudaProcessingOutput<byte[]> processAudio(
+            final byte[] audio,
+            final Compress compress,
+            final Cache cacheParams
+    ) {
+        return processAudio(audio, compress, cacheParams, null);
     }
 
     /** Audio file + progress listener */
@@ -367,23 +410,17 @@ public final class Amplituda {
     ) {
         startProgress(listener);
         InputAudio<Integer> inputAudio = new InputAudio<>(audio, InputAudio.Type.RESOURCE);
-
         // Save start time
         long startTime = System.currentTimeMillis();
-
         updateProgressOperation(listener, ProgressOperation.DECODING);
-
         // Copy raw to local file
         File tempAudio = fileManager.getRawFile(audio, listener);
-
         // Check for success copy operation from res to local tmp
         if(tempAudio == null) {
             return errorOutput(new InvalidRawResourceException(), inputAudio, listener);
         }
-
         // Log operation time
         AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PREPARING, startTime);
-
         try {
             // Process local raw file
             AmplitudaResultJNI result = processFileJNI(tempAudio, inputAudio, compress, cache, listener);
@@ -475,41 +512,42 @@ public final class Amplituda {
         if(!audioFile.exists()) {
             throw new FileNotFoundException();
         }
-
         // Save start time
         long startTime = System.currentTimeMillis();
-
         updateProgressOperation(listener, ProgressOperation.PROCESSING);
-
         File cacheFile = fileManager.getCacheFile(
                 String.valueOf(audioFile.hashCode()),
                 cache.getKey()
         );
-
         AmplitudaResultJNI result = null;
-
         if(cache.getState() == Cache.REUSE) {
             result = amplitudesFromCache(cacheFile);
         }
-
         if(result == null) {
-            String cachePath = cache.getState() != Cache.NONE ? cacheFile.getPath() : null;
+            AmplitudaLogger.log("Process audio " + audioFile.getPath());
             // Process input audio
             result = amplitudesFromAudioJNI(
-                    cachePath,
                     audioFile.getPath(),
                     compress.getType(),
                     compress.getPreferredSamplesPerSecond(),
+                    cacheFile.getPath(),
+                    cache.isEnabled(),
                     listener
             );
+        } else {
+            AmplitudaLogger.log(
+                    String.format(
+                            Locale.US,
+                            "Found cache data \"%s\" for audio \"%s\"",
+                            cacheFile.getName(),
+                            audioFile.getName()
+                    )
+            );
         }
-
         // Save audio duration when file is valid and was processed
         inputAudio.setDuration(result.getDurationMillis());
-
         // Log operation time
         AmplitudaLogger.logOperationTime(AmplitudaLogger.OPERATION_PROCESSING, startTime);
-
         // Stop progress after processing
         stopProgress(listener);
         return result;
@@ -575,10 +613,11 @@ public final class Amplituda {
     }
 
     native AmplitudaResultJNI amplitudesFromAudioJNI(
-            String pathToCache,
             String pathToAudio,
             int compressType,
             int framesPerSecond,
+            String pathToCache,
+            boolean cacheEnabled,
             AmplitudaProgressListener listener
     );
 

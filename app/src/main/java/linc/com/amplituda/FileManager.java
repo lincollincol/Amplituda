@@ -19,6 +19,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
 
+import linc.com.amplituda.exceptions.io.AmplitudaIOException;
+
 
 final class FileManager {
 
@@ -38,7 +40,7 @@ final class FileManager {
     synchronized File getCacheFile(
             final String hash,
             final String key
-    ) {
+    ) throws AmplitudaIOException {
         try {
             String name = AMPLITUDA_INTERNAL_CACHE + "_" + (key.isEmpty() ? hash : key) + ".txt";
             File file = new File(cache, name);
@@ -47,7 +49,7 @@ final class FileManager {
             }
             return file;
         } catch (IOException e) {
-            return null;
+            throw new AmplitudaIOException(e.getMessage(), ErrorCode.AMPLITUDA_EXCEPTION);
         }
     }
 

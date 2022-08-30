@@ -41,13 +41,11 @@ public class MainActivity extends AppCompatActivity {
                         super.onStartProgress();
                         System.out.println("Start Progress");
                     }
-
                     @Override
                     public void onStopProgress() {
                         super.onStopProgress();
                         System.out.println("Stop Progress");
                     }
-
                     @Override
                     public void onProgress(ProgressOperation operation, int progress) {
                         String currentOperation = "";

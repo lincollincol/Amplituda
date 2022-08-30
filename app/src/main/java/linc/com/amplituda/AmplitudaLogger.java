@@ -34,8 +34,7 @@ final class AmplitudaLogger {
      * @param msg - message
      */
     synchronized static void log(final String msg) {
-        if(enable)
-            Log.println(priority, LIB_TAG, msg);
+        if(enable) Log.println(priority, LIB_TAG, msg);
     }
 
     /**

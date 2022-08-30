@@ -3,9 +3,9 @@ package linc.com.amplituda;
 public class Cache {
 
     static final int NONE = 1;
+    static final String DEFAULT_KEY = "";
     public static final int REUSE = 2;
     public static final int REFRESH = 3;
-    public static final String DEFAULT_KEY = "";
 
     private final int state;
     private final String key;
@@ -34,6 +34,10 @@ public class Cache {
 
     public String getKey() {
         return key;
+    }
+
+    boolean isEnabled() {
+        return getState() != Cache.NONE;
     }
 
     static Cache getDefault() {

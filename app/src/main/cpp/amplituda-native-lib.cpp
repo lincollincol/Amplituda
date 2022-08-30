@@ -33,16 +33,14 @@ void write_cache_data(
     }
 }
 
-void copy_temp_amplitudes_data(
-        std::vector<int>* temp_data,
-        std::string* amplitudes_result,
-        FILE* cache
+std::string concat_temp_amplitudes_data(
+        std::vector<int>* temp_data
 ) {
+    std::string temp_sample_str;
     for(int temp_sample : *temp_data) {
-        std::string temp_sample_str = std::to_string(temp_sample) + "\n";
-        *amplitudes_result += temp_sample_str;
-        write_cache_data(cache, &temp_sample_str);
+        temp_sample_str += std::to_string(temp_sample) + "\n";
     }
+    return temp_sample_str;
 }
 
 std::string compress_temp_amplitudes_data(
@@ -77,7 +75,7 @@ std::string compress_temp_amplitudes_data(
     return compress_result;
 }
 
-double getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
+double get_sample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
     int64_t val = 0;
     double ret = 0;
     int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
@@ -156,14 +154,11 @@ static int decode_packet(
 
         // write the frame data to output file
         if(dec->codec->type == AVMEDIA_TYPE_AUDIO) {
-
             double sum = 0;
-
             for(int i = 0; i < frame->nb_samples; i++) {
-                double sample = getSample(audio_dec_ctx, frame->data[0], i);
+                double sample = get_sample(audio_dec_ctx, frame->data[0], i);
                 sum += sample * sample;
             }
-
             temp_samples->push_back(((int)(sqrt(sum / frame->nb_samples) * 100)));
         }
 
@@ -257,18 +252,20 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         JNIEnv* env,
         jobject,
-        jstring jcache_path,
         jstring jaudio_path,
         jint jcompress_type,
         jint jframes_per_second,
+        jstring jcache_path,
+        jboolean jcache_enabled,
         jobject jlistener
 ) {
     int ret = 0;
     // input params
-    const char* audio_cache_path = jcache_path != NULL ? env->GetStringUTFChars(jcache_path, 0) : NULL;
-    const char* input_audio_path = env->GetStringUTFChars(jaudio_path, 0);
     const int preferred_frames_per_second = (int) jframes_per_second;
     int compress_type = (int) jcompress_type;
+    bool cache_enabled = (int) jcache_enabled;
+    const char* cache_audio_path = cache_enabled ? env->GetStringUTFChars(jcache_path, 0) : NULL;
+    const char* input_audio_path = env->GetStringUTFChars(jaudio_path, 0);
 
     // meta and params
     int current_frame_idx = 0, current_progress = 0, nb_frames = 0;
@@ -305,9 +302,9 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     std::string amplitudes_data;
     std::string errors_data;
 
-    if(audio_cache_path != NULL) {
-        fclose(fopen(audio_cache_path, "w+"));
-        cache_file = fopen(audio_cache_path, "a+");
+    if(cache_enabled) {
+        fclose(fopen(cache_audio_path, "w+"));
+        cache_file = fopen(cache_audio_path, "a+");
     }
 
     // open input file, and allocate format context
@@ -359,7 +356,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         nb_frames = (audio_dec_ctx->sample_rate * (int) duration) / audio_dec_ctx->frame_size;
     }
 
-    if(cache_file != NULL) {
+    if(cache_enabled) {
         fprintf(cache_file, "duration=%f\n", duration);
     }
 
@@ -394,26 +391,24 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
         // check if the packet belongs to a stream we are interested in, otherwise skip it
         if (is_audio_stream) {
             ret = decode_packet(audio_dec_ctx, pkt, &temp_data, &errors_data);
-
             // compress data when current_frame_idx is compression_divider
             if(compress_type != COMPRESS_NONE && current_frame_idx % compression_divider == 0) {
                 std::string temp_sample_str = compress_temp_amplitudes_data(&temp_data, &compress_type);
                 amplitudes_data += temp_sample_str;
-                write_cache_data(cache_file, &temp_sample_str);
+                if(cache_enabled) write_cache_data(cache_file, &temp_sample_str);
                 temp_data.clear();
             }
-
             if(compress_type == COMPRESS_NONE) {
-                copy_temp_amplitudes_data(&temp_data, &amplitudes_data, cache_file);
+                std::string temp_sample_str = concat_temp_amplitudes_data(&temp_data);
+                amplitudes_data += temp_sample_str;
+                if(cache_enabled) write_cache_data(cache_file, &temp_sample_str);
                 temp_data.clear();
             }
         }
-
         av_packet_unref(pkt);
         if (ret < 0) {
             break;
         }
-
         // update progress listener
         if(valid_listener) {
             int progress = nb_frames > 0 ? (current_frame_idx * 100) / nb_frames : 0;
@@ -422,7 +417,6 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
                 current_progress = progress;
             }
         }
-
         // Count only audio stream frames (this will prevent +100% progress for video processing)
         if(is_audio_stream) {
             current_frame_idx++;
@@ -430,8 +424,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     }
 
     // make last progress listener call
-//    if(valid_listener && current_progress == 0) {
-    if(valid_listener) {
+    if(valid_listener && current_progress < 100) {
         env->CallVoidMethod(jlistener, on_progress_method, 100);
     }
 
@@ -468,15 +461,15 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
     // return without ffmpeg release
     end_return:
 
-    if(cache_file != NULL) {
-        env->ReleaseStringUTFChars(jcache_path, audio_cache_path);
+    if(cache_enabled) {
         fclose(cache_file);
         cache_file = NULL;
+        env->ReleaseStringUTFChars(jcache_path, cache_audio_path);
     }
     env->ReleaseStringUTFChars(jaudio_path, input_audio_path);
-    (env)->SetDoubleField(amplitudaResultReturnObject, duration_field, duration);
-    (env)->SetObjectField(amplitudaResultReturnObject, amplitudes_field, (env)->NewStringUTF(amplitudes_data.c_str()));
-    (env)->SetObjectField(amplitudaResultReturnObject, errors_field, (env)->NewStringUTF(errors_data.c_str()));
+    env->SetDoubleField(amplitudaResultReturnObject, duration_field, duration);
+    env->SetObjectField(amplitudaResultReturnObject, amplitudes_field, env->NewStringUTF(amplitudes_data.c_str()));
+    env->SetObjectField(amplitudaResultReturnObject, errors_field, env->NewStringUTF(errors_data.c_str()));
 
     on_progress_method = NULL;
 
