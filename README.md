@@ -58,7 +58,7 @@ allprojects {
 ```
 ``` groovy
 dependencies {
-  implementation 'com.github.lincollincol:amplituda:2.1.5'
+  implementation 'com.github.lincollincol:amplituda:x.y.z'
 }
 ```
 
@@ -115,6 +115,35 @@ amplituda.processAudio(<audio>, Compress.withParams(Compress.AVERAGE, 1));
 amplituda.processAudio(<audio>, Compress.withParams(Compress.AVERAGE, 5));
 // Output: data with 5 sample per 1 second
 // Approximate output data size - 60 [duration] * 5 [preferredSamplePerSecond] = 300 [samples]
+```
+
+#### • Cache output data
+``` java
+/** 
+ * Cache result data (optional)
+ * Amplituda provides cache implementation. 
+ * You can reuse already processed audio files. 
+ * Cache states:
+ * - Cache.REUSE   - use already cached data or write
+ *                   processed data to cache (if cache data doesn't exist) 
+ * - Cache.REFRESH - update existing cache data. 
+ *                   WARNING: use this cache state, when you need to update existing cache data  
+ * Key (optional)  - custom cache key. Should be unique for each audio.
+ */ 
+ 
+// Enable amplituda cache feature:
+amplituda.processAudio(<audio>, Cache.withParams(Cache.REUSE));
+// Cache with custom key. The key should be unique 
+amplituda.processAudio(<audio>, Cache.withParams(Cache.REUSE, "my-unique-key"));
+
+// Clear all cache data
+amplituda.clearCache();
+// Clear cache data for specific audio (if exist)
+amplituda.clearCache(<audio>);
+amplituda.clearCache("/storage/emulated/0/Music/Linc - Amplituda.mp3", false);
+// Clear cache data by custom key. 
+amplituda.clearCache("my-unique-key", true);
+
 ```
 
 #### • Handle progress
