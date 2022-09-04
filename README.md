@@ -319,6 +319,12 @@ Add permissions to Manifest.xml file in your app and grant it, before using Ampl
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.INTERNET" />
+
+<!-- Android 10+ -->
+<application
+    android:requestLegacyExternalStorage="true">
+    <activity . . ./>
+</application>
 ```
 ### Reduce size
 Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
