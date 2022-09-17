@@ -1,4 +1,4 @@
-# Amplituda<img align="right" src="https://github.com/lincollincol/Amplituda/blob/master/img/amplituda_preview.png" width="250" height="250">  
+# Amplituda<img align="right" src="https://github.com/lincollincol/Amplituda/blob/master/img/amplituda_preview.png" width="25%">  
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/lincollincol/Amplituda)
 ![GitHub](https://img.shields.io/github/license/lincollincol/Amplituda)
@@ -11,15 +11,12 @@
 Amplituda - an android library based on FFMPEG which process audio file and provide an array of samples. Based on the processed data, you can easily draw custom waveform using the value of the processed data array as the height of the single column.  
 Average processing time is equal to 1 second for audio with duration **3 min 20 seconds** and **1 hour** audio will be processed in approximately 20 seconds.
 
-You can also use <a href="https://github.com/massoudss/waveformSeekBar">WaveformSeekBar</a> library which is fully compatible with Amplituda 
+Amplituda could be used with:
+* [Compose AudioWaveform](https://github.com/lincollincol/compose-audiowaveform) - lightweight `Jetpack Compose` library which draws waveform.
+* [WaveformSeekBar](https://github.com/massoudss/waveformSeekBar) - an android library which draws waveform using `android.view.View` (XML).
+* Custom `View` or `Composable` implementation.
 <p align="center">
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_1.jpg" width="250" height="50"/>&#10240 &#10240
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_2.jpg" width="250" height="50"/>
-  <br/><br/>
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_3.jpg" width="250" height="50"/>&#10240 &#10240
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_4.jpg" width="250" height="50"/>
-   <br/><br/>
-  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveform_5.jpg" width="250" height="50"/>&#10240 &#10240
+  <img src="https://github.com/lincollincol/Amplituda/blob/master/img/waveforms.png" width="100%"/>
 </p>
 
 ## How to use Amplituda? 
