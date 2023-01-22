@@ -1,6 +1,7 @@
 # Amplituda<img align="right" src="https://github.com/lincollincol/Amplituda/blob/master/img/amplituda_preview.png" width="25%">  
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/lincollincol/Amplituda)
+[![](https://jitpack.io/v/lincollincol/Amplituda/month.svg)](https://jitpack.io/#lincollincol/Amplituda)
 ![GitHub](https://img.shields.io/github/license/lincollincol/Amplituda)
 
 ![GitHub followers](https://img.shields.io/github/followers/lincollincol?style=social)
