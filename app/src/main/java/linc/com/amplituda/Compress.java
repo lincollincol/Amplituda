@@ -4,7 +4,7 @@ public final class Compress {
 
     static final int NONE = 1;
     public static final int SKIP = 2;
-    public static final int PEEK = 3;
+    public static final int PEAK = 3;
     public static final int AVERAGE = 4;
 
     private final int type;

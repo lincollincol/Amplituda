@@ -1,40 +1,46 @@
 package linc.com.example;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-
+import android.Manifest;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-
 import java.io.File;
-import java.io.FileFilter;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
-
 import linc.com.amplituda.Amplituda;
-import linc.com.amplituda.AmplitudaProcessingOutput;
 import linc.com.amplituda.AmplitudaProgressListener;
 import linc.com.amplituda.AmplitudaResult;
 import linc.com.amplituda.Cache;
 import linc.com.amplituda.Compress;
 import linc.com.amplituda.InputAudio;
 import linc.com.amplituda.ProgressOperation;
-import linc.com.amplituda.callback.AmplitudaErrorListener;
-import linc.com.amplituda.exceptions.AmplitudaException;
 
 public class MainActivity extends AppCompatActivity {
+
+    private final ActivityResultLauncher<String> permissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> processAudio()
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? Manifest.permission.READ_MEDIA_AUDIO : Manifest.permission.READ_EXTERNAL_STORAGE;
+        permissionLauncher.launch(permission);
+    }
 
+    private void processAudio() {
         Amplituda amplituda = new Amplituda(this);
         amplituda.setLogConfig(Log.ERROR, true);
         amplituda.processAudio(
                 "/storage/emulated/0/Music/Linc - Amplituda.mp3",
-                Compress.withParams(Compress.AVERAGE, 1),
-                Cache.withParams(Cache.REUSE),
+                Compress.withParams(Compress.PEAK, 1),
+                Cache.withParams(Cache.REFRESH),
                 new AmplitudaProgressListener() {
                     @Override
                     public void onStartProgress() {
@@ -57,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                         System.out.printf("%s: %d%% %n", currentOperation, progress);
                     }
                 }
-        ).get(result -> printResult(result), exception -> exception.printStackTrace());
+        ).get(this::printResult, Throwable::printStackTrace);
     }
 
     private void printResult(AmplitudaResult<?> result) {
@@ -88,4 +94,5 @@ public class MainActivity extends AppCompatActivity {
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE, " * ")
         );
     }
+
 }
