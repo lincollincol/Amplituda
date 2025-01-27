@@ -9,6 +9,7 @@ extern "C" {
 #include "libavutil/timestamp.h"
 #include "libavutil/samplefmt.h"
 #include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
 }
 
 static AVFormatContext *fmt_ctx = NULL;
@@ -435,7 +436,7 @@ Java_linc_com_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     if (audio_stream) {
         enum AVSampleFormat sfmt = audio_dec_ctx->sample_fmt;
-        int n_channels = audio_dec_ctx->channels;
+        int n_channels = audio_dec_ctx->ch_layout.nb_channels;
         const char *fmt;
 
         if (av_sample_fmt_is_planar(sfmt)) {

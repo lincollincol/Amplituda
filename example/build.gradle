@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdk 35
-    ndkVersion "21.1.6352462"
+    ndkVersion "28.0.12674087"
     namespace "linc.com.example"
 
     defaultConfig {
@@ -11,8 +11,6 @@ android {
         targetSdk 35
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -29,6 +27,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.appcompat:appcompat:1.5.0'
     implementation project(":app")
 }
