@@ -354,3 +354,5 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
+## This software uses libraries from the FFmpeg project under the LGPLv2.1 
+### [FFmpeg License and Legal Considerations](https://www.ffmpeg.org/legal.html)
