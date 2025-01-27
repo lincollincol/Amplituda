@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.2"
+    compileSdk 35
     ndkVersion "21.1.6352462"
+    namespace "linc.com.example"
 
     defaultConfig {
         applicationId "linc.com.example"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 

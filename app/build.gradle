@@ -1,14 +1,13 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 32
+    compileSdk 35
     ndkVersion "21.1.6352462"
+    namespace "linc.com.amplituda"
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 32
-        versionCode 1
-        versionName "2.1.3"
+        targetSdk 35
         project.archivesBaseName = "Amplituda"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles 'consumer-rules.pro'
