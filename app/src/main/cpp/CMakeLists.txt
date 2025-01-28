@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.10.2)
 
 set(ffmpeg_DIR ${CMAKE_SOURCE_DIR}/ffmpeg)
 
