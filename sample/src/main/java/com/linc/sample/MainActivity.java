@@ -38,8 +38,7 @@ public class MainActivity extends AppCompatActivity {
         Amplituda amplituda = new Amplituda(this);
         amplituda.setLogConfig(Log.ERROR, true);
         amplituda.processAudio(
-//                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
-                "/storage/emulated/0/Music/Skinshape - Mandala.mp3",
+                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
                 Compress.withParams(Compress.PEAK, 1),
                 Cache.withParams(Cache.REFRESH),
                 new AmplitudaProgressListener() {
