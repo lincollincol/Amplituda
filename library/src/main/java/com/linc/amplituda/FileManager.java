@@ -30,7 +30,7 @@ final class FileManager {
 
     FileManager(final Context context) {
         resources = context.getResources();
-        cache = context.getExternalCacheDir()
+        cache = context.getCacheDir()
                 .getPath() + File.separator;
     }
 
