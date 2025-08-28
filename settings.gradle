@@ -22,5 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Amplituda"
 
-include ':library'
+include ':amplituda'
 include ':sample'
