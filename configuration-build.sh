@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 
 case $ANDROID_ABI in
-  x86)
-    # Disable asm for x86 32-bit due to text relocations
-    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --disable-asm"
+  x86|x86_64)
+    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --disable-asm --disable-neon"
     ;;
-  x86_64)
-    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --x86asmexe=${FAM_YASM}"
+  armeabi-v7a)
+    # For older ARM, you might want to disable NEON if causing issues
+    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --disable-neon"
+    ;;
+  arm64-v8a)
+    # Keep NEON enabled for modern ARM64
     ;;
 esac
 
 # Enable requested external libraries
 ADDITIONAL_COMPONENTS=
-for LIBARY_NAME in ${FFMPEG_EXTERNAL_LIBRARIES[@]:-}
+for LIBRARY_NAME in ${FFMPEG_EXTERNAL_LIBRARIES[@]:-}
 do
-  ADDITIONAL_COMPONENTS+=" --enable-$LIBARY_NAME"
+  ADDITIONAL_COMPONENTS+=" --enable-LIBRARY_NAME"
 done
 
 # Dependency include/lib paths
@@ -78,6 +81,7 @@ PAGE_LD_FLAGS="-Wl,-z,max-page-size=16384"
   --enable-demuxers \
   --enable-parsers \
   --enable-runtime-cpudetect \
+  --disable-hardcoded-tables \
   \
   --enable-decoder=mp1 \
   --enable-decoder=mp1float \
