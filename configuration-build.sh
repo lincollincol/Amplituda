@@ -1,37 +1,35 @@
 #!/usr/bin/env bash
 
 case $ANDROID_ABI in
-  x86|x86_64)
-    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --disable-asm --disable-neon"
+  x86)
+    # Disabling assembler optimizations, because they have text relocations
+    EXTRA_BUILD_CONFIGURATION_FLAGS="$EXTRA_BUILD_CONFIGURATION_FLAGS --disable-asm"
     ;;
-  armeabi-v7a)
-    # For older ARM, you might want to disable NEON if causing issues
-    EXTRA_BUILD_CONFIGURATION_FLAGS+=" --disable-neon"
-    ;;
-  arm64-v8a)
-    # Keep NEON enabled for modern ARM64
+  x86_64)
+    EXTRA_BUILD_CONFIGURATION_FLAGS="$EXTRA_BUILD_CONFIGURATION_FLAGS --x86asmexe=${FAM_YASM}"
     ;;
 esac
 
-# Enable requested external libraries
+# Preparing flags for enabling requested libraries
 ADDITIONAL_COMPONENTS=
-for LIBRARY_NAME in ${FFMPEG_EXTERNAL_LIBRARIES[@]:-}
+for LIBRARY_NAME in ${FFMPEG_EXTERNAL_LIBRARIES[@]}
 do
-  ADDITIONAL_COMPONENTS+=" --enable-LIBRARY_NAME"
+  ADDITIONAL_COMPONENTS+=" --enable-$LIBRARY_NAME"
 done
 
-# Dependency include/lib paths
+# Referencing dependencies without pkgconfig
 DEP_CFLAGS="-I${BUILD_DIR_EXTERNAL}/${ANDROID_ABI}/include"
-DEP_LD_FLAGS="-L${BUILD_DIR_EXTERNAL}/${ANDROID_ABI}/lib ${FFMPEG_EXTRA_LD_FLAGS:-}"
+DEP_LD_FLAGS="-L${BUILD_DIR_EXTERNAL}/${ANDROID_ABI}/lib $FFMPEG_EXTRA_LD_FLAGS"
 
-# 16 KB page size support
-PAGE_LD_FLAGS="-Wl,-z,max-page-size=16384"
+# Android 15 with 16 kb page size support
+# https://developer.android.com/guide/practices/page-sizes#compile-r27
+EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384 $DEP_LD_FLAGS"
 
 ./configure \
   --prefix=${BUILD_DIR_FFMPEG}/${ANDROID_ABI} \
   --enable-cross-compile \
   --target-os=android \
-  --arch=${TARGET_TRIPLE_MACHINE_BINUTILS} \
+  --arch=${TARGET_TRIPLE_MACHINE_ARCH} \
   --sysroot=${SYSROOT_PATH} \
   --cc=${FAM_CC} \
   --cxx=${FAM_CXX} \
@@ -41,26 +39,34 @@ PAGE_LD_FLAGS="-Wl,-z,max-page-size=16384"
   --nm=${FAM_NM} \
   --ranlib=${FAM_RANLIB} \
   --strip=${FAM_STRIP} \
-  --extra-cflags="-O3 -fPIC ${DEP_CFLAGS} ${EXTRA_CFLAGS:-}" \
-  --extra-ldflags="${DEP_LD_FLAGS} ${PAGE_LD_FLAGS}" \
+  --extra-cflags="-O3 -fPIC $DEP_CFLAGS" \
+  --extra-ldflags="$EXTRA_LDFLAGS" \
   --enable-shared \
+  --enable-network \
   --disable-static \
+  --disable-vulkan \
+  --disable-gpl \
+  --build-suffix=-amplituda \
   --pkg-config=${PKG_CONFIG_EXECUTABLE} \
-  ${EXTRA_BUILD_CONFIGURATION_FLAGS} \
+  \
+  --enable-avutil \
+  --enable-avformat \
+  --enable-avcodec \
+  --enable-swresample \
+  \
   --disable-programs \
-  --disable-muxers \
-  --disable-gray \
-  --disable-avdevice \
-  --disable-swscale \
-  --disable-postproc \
-  --disable-doc \
-  --disable-debug \
-  --disable-network \
-  --disable-pixelutils \
-  --disable-avfilter \
-  --disable-encoders \
-  --disable-decoders \
+  --disable-ffmpeg \
+  --disable-ffplay \
   --disable-ffprobe \
+  \
+  --disable-avfilter \
+  --disable-postproc \
+  --disable-vulkan \
+  --disable-swscale \
+  \
+  --disable-gray \
+  --disable-debug \
+  --disable-pixelutils \
   --disable-v4l2-m2m \
   --disable-vaapi \
   --disable-vdpau \
@@ -70,18 +76,15 @@ PAGE_LD_FLAGS="-Wl,-z,max-page-size=16384"
   --disable-ffnvcodec \
   --disable-nvdec \
   --disable-nvenc \
-  --disable-bsfs \
-  --disable-autodetect \
-  --disable-outdevs \
-  --disable-hwaccels \
-  --disable-gpl \
   \
-  --enable-avformat \
-  --enable-avcodec \
+  --disable-encoders \
+  --disable-decoders \
+  --disable-muxers \
+  --disable-filters \
+  --disable-bsfs \
+  \
   --enable-demuxers \
   --enable-parsers \
-  --enable-runtime-cpudetect \
-  --disable-hardcoded-tables \
   \
   --enable-decoder=mp1 \
   --enable-decoder=mp1float \
@@ -152,7 +155,16 @@ PAGE_LD_FLAGS="-Wl,-z,max-page-size=16384"
   --enable-decoder=amrnb \
   --enable-decoder=amrwb \
   --enable-decoder=als \
-  --build-suffix=-amplituda \
+  \
+  --disable-hwaccels \
+  --disable-avdevice \
+  --disable-doc \
+  --disable-htmlpages \
+  --disable-manpages \
+  --disable-podpages \
+  --disable-txtpages \
+  \
+  ${EXTRA_BUILD_CONFIGURATION_FLAGS} \
   $ADDITIONAL_COMPONENTS || exit 1
 
 ${MAKE_EXECUTABLE} clean

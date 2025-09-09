@@ -10,7 +10,7 @@ android {
     namespace "com.linc.sample"
 
     defaultConfig {
-        applicationId "linc.com.example"
+        applicationId "com.linc.sample"
         minSdkVersion 21
         targetSdk 35
         versionCode 1
