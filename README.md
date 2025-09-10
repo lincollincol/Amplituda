@@ -335,10 +335,16 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
     <activity . . ./>
 </application>
 ```
+
+### Build scripts (FFmpeg .so binaries configuration)
+The FFmpeg binaries for this project were assembled with help of [ffmpeg-android-maker](https://github.com/Javernaut/ffmpeg-android-maker) by Javernaut (Oleksandr Berezhnyi).
+Custom Amplituda configuration (`configuration-build.sh`) is available in the root directory of the project.
+
 ## Feedback
 <a href="https://mail.google.com">andriy.serb1@gmail.com</a>
 
 # License
+
 ```
    Copyright 2020-present lincollincol
 
@@ -353,6 +359,11 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+   
+   FFmpeg
+   -------
+   Third-party components:
+   This software uses libraries from the FFmpeg project under the LGPLv2.1. 
+   FFmpeg is a separate project and is licensed under the LGPL. See https://ffmpeg.org for details.
+   See FFmpeg License and Legal Considerations (https://www.ffmpeg.org/legal.html)
 ```
-## This software uses libraries from the FFmpeg project under the LGPLv2.1 
-### [FFmpeg License and Legal Considerations](https://www.ffmpeg.org/legal.html)
