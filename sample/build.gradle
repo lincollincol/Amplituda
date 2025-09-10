@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+    id 'maven-publish'
+}
+
+android {
+
+    compileSdk 36
+    ndkVersion "28.0.12674087"
+    namespace "com.linc.sample"
+
+    defaultConfig {
+        applicationId "com.linc.sample"
+        minSdkVersion 21
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation 'androidx.appcompat:appcompat:1.5.0'
+    implementation project(":amplituda")
+}
