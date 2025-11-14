@@ -77,6 +77,9 @@ std::string compress_temp_amplitudes_data(
 }
 
 double get_sample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
+    if (codecCtx == NULL || buffer == NULL) {
+        return 0.0;
+    }
     int64_t val = 0;
     double ret = 0;
     int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
@@ -270,7 +273,7 @@ Java_com_linc_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     // meta and params
     int current_frame_idx = 0, current_progress = 0, nb_frames = 0;
-    int actual_frames_per_second, compression_divider;
+    int actual_frames_per_second, compression_divider = 1;
     double duration = 0.0;
     bool valid_listener = false;
     FILE *cache_file;
@@ -322,6 +325,11 @@ Java_com_linc_amplituda_Amplituda_amplitudesFromAudioJNI(
 
     if (open_codec_context(&audio_stream_idx, &audio_dec_ctx, fmt_ctx, AVMEDIA_TYPE_AUDIO, &errors_data) >= 0) {
         audio_stream = fmt_ctx->streams[audio_stream_idx];
+    }
+
+    if (audio_dec_ctx == NULL) {
+        add_error(&errors_data, CODEC_CONTEXT_ALLOC_CODE);
+        goto end_cleanup;
     }
 
     // dump input information to stderr
