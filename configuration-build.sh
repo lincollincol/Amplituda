@@ -155,6 +155,8 @@ EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384 $DEP_LD_FLAGS"
   --enable-decoder=amrnb \
   --enable-decoder=amrwb \
   --enable-decoder=als \
+  --enable-decoder=alac \
+  --enable-decoder=alac_fixed \
   \
   --disable-hwaccels \
   --disable-avdevice \
