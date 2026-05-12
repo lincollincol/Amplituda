@@ -1,13 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:gravity="top"
+    android:layout_marginTop="16dp"
+    android:orientation="vertical"
+    android:padding="24dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Amplituda!"
-        android:layout_gravity="center" />
+        android:textAppearance="@style/TextAppearance.AppCompat.Title" />
 
-</FrameLayout>
+    <com.masoudss.lib.WaveformSeekBar
+        android:id="@+id/waveformSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="24dp"
+        app:wave_background_color="@android:color/darker_gray"
+        app:wave_corner_radius="4dp"
+        app:wave_gap="2dp"
+        app:wave_gravity="center"
+        app:wave_min_height="4dp"
+        app:wave_padding_Bottom="2dp"
+        app:wave_padding_top="2dp"
+        app:wave_progress_color="@color/colorAccent"
+        app:wave_width="4dp" />
+
+</LinearLayout>

@@ -339,6 +339,7 @@ Add ``` android:extractNativeLibs="false" ``` to application in the Manifest.xml
 ### Build scripts (FFmpeg .so binaries configuration)
 The FFmpeg binaries for this project were assembled with help of [ffmpeg-android-maker](https://github.com/Javernaut/ffmpeg-android-maker) by Javernaut (Oleksandr Berezhnyi).
 Custom Amplituda configuration (`configuration-build.sh`) is available in the root directory of the project.
+Current binaries are built from FFmpeg 7.1.4 (`ffmpeg-7.1.4.tar.xz`, SHA-256 `71f4aac3573ed9060489cb62526a6c7dda815ae10993789611acd7be9fa9fbf4`).
 
 ## Feedback
 <a href="https://mail.google.com">andriy.serb1@gmail.com</a>

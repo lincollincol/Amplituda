@@ -33,6 +33,7 @@ EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384 $DEP_LD_FLAGS"
   --sysroot=${SYSROOT_PATH} \
   --cc=${FAM_CC} \
   --cxx=${FAM_CXX} \
+  --stdc=gnu17 \
   --ld=${FAM_LD} \
   --ar=${FAM_AR} \
   --as=${FAM_CC} \
@@ -42,7 +43,7 @@ EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384 $DEP_LD_FLAGS"
   --extra-cflags="-O3 -fPIC $DEP_CFLAGS" \
   --extra-ldflags="$EXTRA_LDFLAGS" \
   --enable-shared \
-  --enable-network \
+  --disable-network \
   --disable-static \
   --disable-vulkan \
   --disable-gpl \

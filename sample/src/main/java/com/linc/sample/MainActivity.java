@@ -3,13 +3,18 @@ package com.linc.sample;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.Manifest;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+
+import com.masoudss.lib.WaveformSeekBar;
 import com.linc.amplituda.Amplituda;
 import com.linc.amplituda.AmplitudaProgressListener;
 import com.linc.amplituda.AmplitudaResult;
@@ -20,6 +25,8 @@ import com.linc.amplituda.ProgressOperation;
 
 public class MainActivity extends AppCompatActivity {
 
+    private WaveformSeekBar waveformSeekBar;
+
     private final ActivityResultLauncher<String> permissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
             isGranted -> processAudio()
@@ -29,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        waveformSeekBar = findViewById(R.id.waveformSeekBar);
         String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 ? Manifest.permission.READ_MEDIA_AUDIO : Manifest.permission.READ_EXTERNAL_STORAGE;
         permissionLauncher.launch(permission);
@@ -36,9 +44,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void processAudio() {
         Amplituda amplituda = new Amplituda(this);
-        amplituda.setLogConfig(Log.ERROR, true);
+        amplituda.setLogConfig(Log.DEBUG, true);
         amplituda.processAudio(
-                "/storage/emulated/0/Music/Linc - Amplituda.mp3",
+                R.raw.kygo,
                 Compress.withParams(Compress.PEAK, 1),
                 Cache.withParams(Cache.REFRESH),
                 new AmplitudaProgressListener() {
@@ -47,18 +55,26 @@ public class MainActivity extends AppCompatActivity {
                         super.onStartProgress();
                         System.out.println("Start Progress");
                     }
+
                     @Override
                     public void onStopProgress() {
                         super.onStopProgress();
                         System.out.println("Stop Progress");
                     }
+
                     @Override
                     public void onProgress(ProgressOperation operation, int progress) {
                         String currentOperation = "";
                         switch (operation) {
-                            case PROCESSING: currentOperation = "Process audio"; break;
-                            case DECODING: currentOperation = "Decode audio"; break;
-                            case DOWNLOADING: currentOperation = "Download audio from url"; break;
+                            case PROCESSING:
+                                currentOperation = "Process audio";
+                                break;
+                            case DECODING:
+                                currentOperation = "Decode audio";
+                                break;
+                            case DOWNLOADING:
+                                currentOperation = "Download audio from url";
+                                break;
                         }
                         System.out.printf("%s: %d%% %n", currentOperation, progress);
                     }
@@ -67,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void printResult(AmplitudaResult<?> result) {
+        waveformSeekBar.setSampleFrom(toIntArray(result.amplitudesAsList()));
         System.out.printf(Locale.US,
                 "Audio info:\n" +
                         "millis = %d\n" +
@@ -93,6 +110,14 @@ public class MainActivity extends AppCompatActivity {
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.NEW_LINE),
                 result.amplitudesAsSequence(AmplitudaResult.SequenceFormat.SINGLE_LINE, " * ")
         );
+    }
+
+    private int[] toIntArray(List<Integer> amplitudes) {
+        int[] samples = new int[amplitudes.size()];
+        for (int i = 0; i < amplitudes.size(); i++) {
+            samples[i] = amplitudes.get(i);
+        }
+        return samples;
     }
 
 }
